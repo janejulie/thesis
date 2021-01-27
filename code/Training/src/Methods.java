@@ -1,0 +1,3 @@
+public enum Methods{
+    DAUERLEISTUNG, INTERVALL, WIEDERHOLUNG, PAUSE
+}
