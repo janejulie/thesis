@@ -48,6 +48,7 @@ public abstract class Macro {
                 tableContent[i][7] = sessions.get(i).getDistribution().get(PerformanceRange.K45);
             }
         }
+        System.out.println(tableContent);
         return tableContent;
     }
 }

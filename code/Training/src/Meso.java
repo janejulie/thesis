@@ -1,13 +1,12 @@
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.search.strategy.Search;
+import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMax;
+import org.chocosolver.solver.search.strategy.selectors.variables.Largest;
 import org.chocosolver.solver.variables.IntVar;
-import org.chocosolver.util.objects.IntList;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 public class Meso {
     private final HashMap<PerformanceRange, Integer> targetMinutes;
@@ -19,7 +18,6 @@ public class Meso {
     private IntVar[] methods;
     private IntVar[][] ranges;
     private IntVar trainingMinutes;
-    private IntVar distanceRanges;
     private IntVar sumKB, sumGA, sumEB, sumSB, sumK123, sumK45;
     private IntVar distKB, distGA, distEB, distSB, distK123, distK45;
     private IntVar overallDistance;
@@ -36,7 +34,7 @@ public class Meso {
 
         initializeModel();
         defineConstraints();
-        solveMonth();
+        solveWithoutOptimization();
     }
 
     private void initializeModel() {
@@ -46,18 +44,18 @@ public class Meso {
         this.ranges = model.intVarMatrix("ranges", 28, PerformanceRange.values().length, 0, maxMinutesDay, false);
         this.trainingMinutes = model.intVar("totalMinutes", 0, 28*maxMinutesDay);
         this.overallDistance = model.intVar("distance", 0, 28*maxMinutesDay);
-        this.sumKB = model.intVar("sumKB", 0, 1000);
-        this.sumGA = model.intVar("sumGA", 0, 1000);
-        this.sumEB = model.intVar("sumEB", 0, 1000);
-        this.sumSB = model.intVar("sumSB", 0, 1000);
-        this.sumK123 = model.intVar("sumK123", 0, 1000);
-        this.sumK45 = model.intVar("sumK45", 0, 1000);
-        this.distKB = model.intVar("distKB", 0, 1000);
-        this.distGA = model.intVar("distGA", 0, 1000);
-        this.distEB = model.intVar("distEB", 0, 1000);
-        this.distSB = model.intVar("distSB", 0, 1000);
-        this.distK123 = model.intVar("distK123", 0, 1000);
-        this.distK45 = model.intVar("distK45", 0, 1000);
+        this.sumKB = model.intVar("sumKB", 0, 28*maxMinutesDay);
+        this.sumGA = model.intVar("sumGA", 0, 28*maxMinutesDay);
+        this.sumEB = model.intVar("sumEB", 0, 28*maxMinutesDay);
+        this.sumSB = model.intVar("sumSB", 0, 28*maxMinutesDay);
+        this.sumK123 = model.intVar("sumK123", 0, 28*maxMinutesDay);
+        this.sumK45 = model.intVar("sumK45", 0, 28*maxMinutesDay);
+        this.distKB = model.intVar("distKB", 0, 28*maxMinutesDay);
+        this.distGA = model.intVar("distGA", 0, 28*maxMinutesDay);
+        this.distEB = model.intVar("distEB", 0, 28*maxMinutesDay);
+        this.distSB = model.intVar("distSB", 0, 28*maxMinutesDay);
+        this.distK123 = model.intVar("distK123", 0, 28*maxMinutesDay);
+        this.distK45 = model.intVar("distK45", 0, 28*maxMinutesDay);
     }
 
     private IntVar[] getColumn(IntVar[][] matrix, int colNum){
@@ -84,15 +82,17 @@ public class Meso {
         model.sum(getColumn(ranges, PerformanceRange.K45), "=", sumK45).post();
 
         // Calculate distance to the target Minutes for each performance ranges
-        model.arithm(distKB,"=" , sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar()).post();
-        model.arithm(distGA,"=" , sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar()).post();
-        model.arithm(distEB,"=" , sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar()).post();
-        model.arithm(distSB,"=" , sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar()).post();
-        model.arithm(distK123,"=" , sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar()).post();
-        model.arithm(distK45,"=" , sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar()).post();
 
-        // Minizize this Variable
-        model.arithm(overallDistance, "=", distKB.add(distGA, distEB, distSB, distK123, distK45).intVar()).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar(), "=", distKB).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.GA)).abs().intVar(), "=" , distGA ).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.EB)).abs().intVar(), "=", distEB).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.SB)).abs().intVar(), "=", distSB).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.K123)).abs().intVar(), "=", distK123).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.K45)).abs().intVar(), "=", distK45).post();
+
+        // Minimize this Variable
+        IntVar[] distances = new IntVar[]{distKB, distGA, distEB, distSB, distK123, distK45};
+        model.sum(distances, "=", overallDistance).post();
 
         // CONSTRAINTS for weeks
         for (int week = 0; week <4; week++) {
@@ -144,36 +144,60 @@ public class Meso {
 
             model.ifThen(
                     model.arithm(methods[i], "=", Methods.INTERVALL.ordinal()),
-                    model.arithm(minutes[i], ">", 30)
+                    model.arithm(minutes[i], ">", 0)
             );
 
             model.ifThen(
                     model.arithm(methods[i], "=", Methods.WIEDERHOLUNG.ordinal()),
-                    model.arithm(minutes[i], ">", 15)
+                    model.arithm(minutes[i], ">", 0)
             );
 
 
         }
     }
 
-    private void solveMonth() {
-        model.setObjective(Model.MINIMIZE, overallDistance);
+    private void solveWithoutOptimization(){
         Solver solver = model.getSolver();
-        plan = solver.findSolution();
+        plan = solver.findOptimalSolution(overallDistance, false);
         System.out.println(plan);
+        solver.showStatistics();
+    }
+
+    private void solveMonth() {
+        Solution plan = new Solution(model);
+        Solver solver = model.getSolver();
+
+        solver.setSearch(
+                Search.intVarSearch(
+                        new Largest(),
+                        new IntDomainMax(),
+                        overallDistance)
+        );
+
+        // optimization
+        while(solver.solve()){
+            System.out.println(solver.getBestSolutionValue());
+        };
+
+        solver.showShortStatistics();
     }
 
     public Session[] getSessionsMonth(){
         Session[] sessions = new Session[28];
         for (int i = 0; i < 28; i++) {
             HashMap dis = new HashMap();
-            dis.put(PerformanceRange.KB, ranges[i][0].getValue());
-            dis.put(PerformanceRange.GA, ranges[i][1].getValue());
-            dis.put(PerformanceRange.EB, ranges[i][2].getValue());
-            dis.put(PerformanceRange.SB, ranges[i][3].getValue());
-            dis.put(PerformanceRange.K123, ranges[i][4].getValue());
-            dis.put(PerformanceRange.K45, ranges[i][5].getValue());
-            sessions[i] = new Session(minutes[i].getValue(), Methods.values()[methods[i].getValue()], dis);
+            dis.put(PerformanceRange.KB, plan.getIntVal(ranges[i][0]));
+            dis.put(PerformanceRange.GA, plan.getIntVal(ranges[i][1]));
+            dis.put(PerformanceRange.EB, plan.getIntVal(ranges[i][2]));
+            dis.put(PerformanceRange.SB, plan.getIntVal(ranges[i][3]));
+            dis.put(PerformanceRange.K123, plan.getIntVal(ranges[i][4]));
+            dis.put(PerformanceRange.K45, plan.getIntVal(ranges[i][5]));
+
+            int minute = plan.getIntVal(minutes[i]);
+            Methods meth = Methods.values()[plan.getIntVal(methods[i])];
+
+            sessions[i] = new Session(minute, meth , dis);
+
         }
         return sessions;
     }
