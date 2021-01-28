@@ -1,8 +1,12 @@
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.stream.IntStream;
 
 public class Main {
@@ -10,6 +14,7 @@ public class Main {
     JPanel mainPanel;
     JTable table;
     JButton bCalculate;
+    JLabel lSelected;
 
     public Main() {
         frame = new JFrame();
@@ -34,6 +39,7 @@ public class Main {
         JComboBox<String> iCompetition = new JComboBox<String>(competition);
         JFormattedTextField iCompetitionDate = new JFormattedTextField(competitionDate);
         iCompetitionDate.setColumns(8);
+        this.lSelected = new JLabel("Woche");
 
         bCalculate = new JButton("Erstelle Trainingsplan");
 
@@ -63,12 +69,44 @@ public class Main {
         inputPanel.add(new Label("Wettkampfstag"));
         inputPanel.add(iCompetitionDate);
 
+
         JPanel output = new JPanel();
-        table = new JTable(new DefaultTableModel());
+        TableCellRenderer renderer = new TrainingCellRenderer();
+        table = new JTable(new DefaultTableModel()){
+            @Override
+            public TableCellRenderer getCellRenderer(int row, int column) {
+                return renderer;
+            }
+        };
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+            public void valueChanged(ListSelectionEvent event) {
+                int[] rows = table.getSelectedRows();
+                HashMap<String, Integer> sums = new HashMap<>();
+                for (int rowNum:rows){
+                    for (int colNum=0; colNum<table.getColumnCount(); colNum++){
+                        String colName = table.getColumnName(colNum);
+                        if(colName!="Trainingsmethode") {
+                            int newVal = (int) table.getValueAt(rowNum, colNum) + sums.getOrDefault(colName, 0);
+                            sums.put(colName, newVal);
+                        }
+                    }
+                }
+                String stats = "Gesamtminuten: " + sums.get(table.getColumnName(0)).toString();
+                stats += "\n" + "KB: " + sums.get(table.getColumnName(2)).toString();
+                stats += "\n" + "GA: " + sums.get(table.getColumnName(3)).toString();
+                stats += "\n" + "EB: " + sums.get(table.getColumnName(4)).toString();
+                stats += "\n" + "SB: " + sums.get(table.getColumnName(5)).toString();
+                stats += "\n" + "K123: " + sums.get(table.getColumnName(6)).toString();
+                stats += "\n" + "K45: " + sums.get(table.getColumnName(7)).toString();
+                lSelected.setText(stats);
+            }
+        });
         output.setLayout(new BorderLayout());
         output.add(new JScrollPane(table), BorderLayout.CENTER);
         mainPanel.add(inputPanel);
         mainPanel.add(bCalculate);
+        mainPanel.add(new Label("Auswahl"));
+        mainPanel.add(lSelected);
         mainPanel.add(output);
         frame.getRootPane().setDefaultButton(bCalculate);
         frame.setContentPane(mainPanel);
@@ -90,6 +128,8 @@ public class Main {
         }
         Object[] header = {"Minuten", "Trainingsmethode", "KB", "GA", "EB", "SB", "K123", "K45"};
         ((DefaultTableModel) table.getModel()).setDataVector(plan.getListOfSessions(), header);
+
+
     }
 
     public static void main(String[] args) {

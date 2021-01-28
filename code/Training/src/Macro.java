@@ -10,15 +10,18 @@ public abstract class Macro {
     public Macro(int numMonths, int maxMinutesWeek, int maxWeeklyDays) {
         this.numMonths = numMonths;
         this.numDays = numMonths*28;
+        this.setPerformanceRanges();
 
         double steps = 0.1;
         double minIntensity = 1 - steps*(numMonths-1);
         for (double i = minIntensity; i <= 1; i += steps){
-            Meso meso = new Meso(i, performanceRanges, maxMinutesWeek, maxWeeklyDays);
+            Meso meso = new Meso(i, getPerformanceRanges((int)(i/steps)), maxMinutesWeek, maxWeeklyDays);
             mesos.add(meso);
-            System.out.println(meso);
         }
     }
+
+    abstract HashMap<PerformanceRange, Double> getPerformanceRanges(int month);
+    abstract void setPerformanceRanges();
 
     @Override
     public String toString() {
