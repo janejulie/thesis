@@ -1,20 +1,18 @@
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.stream.IntStream;
 
 public class Main {
     JFrame frame;
     JPanel mainPanel;
-    JTable table;
+    TrainingTable table;
     JButton bCalculate;
-    JLabel lSelected;
+    JLabel targets;
+    Macro plan;
 
     public Main() {
         frame = new JFrame();
@@ -22,28 +20,19 @@ public class Main {
         mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
-        // define possible inputs
-        Integer[] months = new Integer[]{3, 4, 5};
-        Integer[] weeklyDays = new Integer[]{1, 2, 3, 4, 5, 6};
-        Integer[] weeklyHours = IntStream.rangeClosed(5, 20).boxed().toArray(Integer[] ::new);
-        String[] competition = new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"};
-        String competitionDate = new SimpleDateFormat("dd.MM.yy").format(new Date());
-
-        // GUI elements
+        // GUI Input elements
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
-        JComboBox<Integer> iMonths = new JComboBox<Integer>(months);
-        JComboBox<Integer> iWeeklyDays = new JComboBox<Integer>(weeklyDays);
+        JComboBox<Integer> iMonths = new JComboBox<Integer>(new Integer[]{3, 4, 5});
+        JComboBox<Integer> iWeeklyDays = new JComboBox<Integer>(new Integer[]{1, 2, 3, 4, 5, 6});
         iWeeklyDays.setSelectedItem(3);
-        JComboBox<Integer> iWeeklyHours = new JComboBox<Integer>(weeklyHours);
+        JComboBox<Integer> iWeeklyHours = new JComboBox<Integer>(IntStream.rangeClosed(5, 20).boxed().toArray(Integer[]::new));
         iWeeklyHours.setSelectedItem(10);
-        JComboBox<String> iCompetition = new JComboBox<String>(competition);
-        JFormattedTextField iCompetitionDate = new JFormattedTextField(competitionDate);
+        JComboBox<String> iCompetition = new JComboBox<String>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
+        JFormattedTextField iCompetitionDate = new JFormattedTextField(new SimpleDateFormat("dd.MM.yy").format(new Date()));
         iCompetitionDate.setColumns(8);
-        this.lSelected = new JLabel("Woche");
 
         bCalculate = new JButton("Erstelle Trainingsplan");
-
-        bCalculate.addActionListener( e ->
+        bCalculate.addActionListener(e ->
                 {
                     try {
                         bCalculatePressed(
@@ -58,6 +47,7 @@ public class Main {
                     }
                 }
         );
+
         inputPanel.add(new Label("Dauer in Monaten"));
         inputPanel.add(iMonths);
         inputPanel.add(new Label("Maximale wöchentliche Trainingstage"));
@@ -69,53 +59,32 @@ public class Main {
         inputPanel.add(new Label("Wettkampfstag"));
         inputPanel.add(iCompetitionDate);
 
+        targets = new JLabel();
+        JLabel monitor = new JLabel();
+        JPanel wrap = new JPanel();
+        wrap.add(inputPanel);
+        wrap.add(targets);
+        wrap.add(monitor);
 
+        JLabel lSelected = new JLabel("");
         JPanel output = new JPanel();
-        TableCellRenderer renderer = new TrainingCellRenderer();
-        table = new JTable(new DefaultTableModel()){
-            @Override
-            public TableCellRenderer getCellRenderer(int row, int column) {
-                return renderer;
-            }
-        };
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
-            public void valueChanged(ListSelectionEvent event) {
-                int[] rows = table.getSelectedRows();
-                HashMap<String, Integer> sums = new HashMap<>();
-                for (int rowNum:rows){
-                    for (int colNum=0; colNum<table.getColumnCount(); colNum++){
-                        String colName = table.getColumnName(colNum);
-                        if(colName!="Trainingsmethode") {
-                            int newVal = (int) table.getValueAt(rowNum, colNum) + sums.getOrDefault(colName, 0);
-                            sums.put(colName, newVal);
-                        }
-                    }
-                }
-                String stats = "Gesamtminuten: " + sums.get(table.getColumnName(0)).toString();
-                stats += "\n" + "KB: " + sums.get(table.getColumnName(2)).toString();
-                stats += "\n" + "GA: " + sums.get(table.getColumnName(3)).toString();
-                stats += "\n" + "EB: " + sums.get(table.getColumnName(4)).toString();
-                stats += "\n" + "SB: " + sums.get(table.getColumnName(5)).toString();
-                stats += "\n" + "K123: " + sums.get(table.getColumnName(6)).toString();
-                stats += "\n" + "K45: " + sums.get(table.getColumnName(7)).toString();
-                lSelected.setText(stats);
-            }
-        });
+        table = new TrainingTable(monitor);
+
         output.setLayout(new BorderLayout());
         output.add(new JScrollPane(table), BorderLayout.CENTER);
-        mainPanel.add(inputPanel);
+        mainPanel.add(wrap);
         mainPanel.add(bCalculate);
-        mainPanel.add(new Label("Auswahl"));
         mainPanel.add(lSelected);
         mainPanel.add(output);
         frame.getRootPane().setDefaultButton(bCalculate);
         frame.setContentPane(mainPanel);
-        frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        frame.setSize(new Dimension(1500, 800));
         frame.setVisible(true);
     }
 
     private void bCalculatePressed(int month, String comp, int weeklyHours, int weeklyDays, String compDate) throws Exception {
-        Macro plan;
+        table.getSelectionModel().clearSelection();
+        table.setMonitor("loading");
         int iMaxWeeklyHours = weeklyHours * 60;
         if (comp == "Straßeneinzel") {
             plan = new SingledayCompetition(month, iMaxWeeklyHours, weeklyDays);
@@ -126,10 +95,9 @@ public class Main {
         } else {
             throw new Exception();
         }
-        Object[] header = {"Minuten", "Trainingsmethode", "KB", "GA", "EB", "SB", "K123", "K45"};
-        ((DefaultTableModel) table.getModel()).setDataVector(plan.getListOfSessions(), header);
-
-
+        table.createTableContent(plan.getSessions());
+        table.setMonitor("");
+        targets.setText(plan.toString());
     }
 
     public static void main(String[] args) {

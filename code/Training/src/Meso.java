@@ -111,12 +111,21 @@ public class Meso {
             model.mod(minutes[i], 15, 0).post();
             model.sum(ranges[i], "=", minutes[i]).post();
 
+            // Kompensation nur als Dauerleistung
+            model.ifThen(
+                    model.arithm(ranges[i][PerformanceRange.KB.ordinal()], ">", 0),
+                    model.arithm(methods[i], "=", Methods.DAUERLEISTUNG.ordinal())
+            );
 
             // PAUSE
             model.ifOnlyIf(
                     model.arithm(minutes[i], "=", 0),
                     model.arithm(methods[i], "=", Methods.PAUSE.ordinal())
             );
+//            model.ifThen(
+//                    model.arithm(methods[i], "=", Methods.DAUERLEISTUNG.ordinal()),
+//                    model.among
+//                    model.count(0, ranges[i], )
 
             model.ifThen(
                     model.arithm(methods[i], "=", Methods.DAUERLEISTUNG.ordinal()),
@@ -144,12 +153,21 @@ public class Meso {
 
             model.ifThen(
                     model.arithm(methods[i], "=", Methods.INTERVALL.ordinal()),
-                    model.arithm(minutes[i], ">", 0)
+                    model.and(
+                            model.arithm(ranges[i][PerformanceRange.GA.ordinal()], "=", 45),
+                            model.arithm(minutes[i], ">", 0)
+                    )
             );
 
             model.ifThen(
                     model.arithm(methods[i], "=", Methods.WIEDERHOLUNG.ordinal()),
-                    model.arithm(minutes[i], ">", 0)
+                    model.and(
+                            model.arithm(ranges[i][PerformanceRange.GA.ordinal()], "=", 60),
+                            model.arithm(ranges[i][PerformanceRange.KB.ordinal()], "=", minutes[i].sub(60).div(10).mul(6).intVar()),
+                            model.arithm(ranges[i][PerformanceRange.EB.ordinal()], "=", minutes[i].sub(60+15).div(10).mul(4).intVar()),
+                            model.arithm(ranges[i][PerformanceRange.K123.ordinal()], "=", 0),
+                            model.arithm(ranges[i][PerformanceRange.K45.ordinal()], "=", 0)
+                    )
             );
 
 
@@ -204,12 +222,8 @@ public class Meso {
 
     @Override
     public String toString() {
-        return "Meso{" +
-                "ranges=" + ranges +
-                ", maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) +
-                ", maxDays=" + maxDays +
-                ", maxMinutesDay=" + maxMinutesDay +
-                '}';
+        return "ranges=" + targetMinutes + "<br>" +
+                "maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) + "<br>" ;
     }
 }
 

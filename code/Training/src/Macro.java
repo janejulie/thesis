@@ -5,18 +5,25 @@ import java.util.HashMap;
 public abstract class Macro {
     protected HashMap<PerformanceRange, Double> performanceRanges = new HashMap<>();
     protected int numMonths, numDays;
-    protected ArrayList<Meso> mesos = new ArrayList<>();
+    protected ArrayList<Meso> mesos = new ArrayList<Meso>();
+    protected ArrayList<Session> sessions = new ArrayList<Session>();
 
     public Macro(int numMonths, int maxMinutesWeek, int maxWeeklyDays) {
         this.numMonths = numMonths;
         this.numDays = numMonths*28;
         this.setPerformanceRanges();
 
+        // create Mesos
         double steps = 0.1;
         double minIntensity = 1 - steps*(numMonths-1);
         for (double i = minIntensity; i <= 1; i += steps){
             Meso meso = new Meso(i, getPerformanceRanges((int)(i/steps)), maxMinutesWeek, maxWeeklyDays);
             mesos.add(meso);
+        }
+
+        // collect all sessions
+        for (Meso meso: mesos){
+            sessions.addAll(Arrays.asList(meso.getSessionsMonth()));
         }
     }
 
@@ -25,30 +32,15 @@ public abstract class Macro {
 
     @Override
     public String toString() {
-        return "Makro: " + performanceRanges +  "\n"
-                + mesos;
+        String msg = "<html>";
+        for (Meso meso : mesos){
+            msg += meso.toString() + "<br>";
+        }
+        msg += "</html>";
+        return msg;
     }
 
-    public Object[][] getListOfSessions(){
-        ArrayList<Session> sessions = new ArrayList();
-        for (Meso meso: mesos){
-            sessions.addAll(Arrays.asList(meso.getSessionsMonth()));
-        }
-
-        Object[][] tableContent = new Object[sessions.size()][8];
-        for (int i = 0; i<sessions.size(); i++){
-            for (int ii = 0; ii < 8; ii++){
-                tableContent[i][0] = sessions.get(i).getMinutes();
-                tableContent[i][1] = sessions.get(i).getMethod();
-                tableContent[i][2] = sessions.get(i).getDistribution().get(PerformanceRange.KB);
-                tableContent[i][3] = sessions.get(i).getDistribution().get(PerformanceRange.GA);
-                tableContent[i][4] = sessions.get(i).getDistribution().get(PerformanceRange.EB);
-                tableContent[i][5] = sessions.get(i).getDistribution().get(PerformanceRange.SB);
-                tableContent[i][6] = sessions.get(i).getDistribution().get(PerformanceRange.K123);
-                tableContent[i][7] = sessions.get(i).getDistribution().get(PerformanceRange.K45);
-            }
-        }
-        System.out.println(tableContent);
-        return tableContent;
+    public ArrayList<Session> getSessions(){
+        return sessions;
     }
 }
