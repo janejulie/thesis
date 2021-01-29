@@ -34,7 +34,7 @@ public class Meso {
 
         initializeModel();
         defineConstraints();
-        solveWithoutOptimization();
+        //solveWithoutOptimization();
     }
 
     private void initializeModel() {
@@ -84,7 +84,7 @@ public class Meso {
         // Calculate distance to the target Minutes for each performance ranges
 
         model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar(), "=", distKB).post();
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.GA)).abs().intVar(), "=" , distGA ).post();
+        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.GA)).abs().intVar(), "=" , distGA).post();
         model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.EB)).abs().intVar(), "=", distEB).post();
         model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.SB)).abs().intVar(), "=", distSB).post();
         model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.K123)).abs().intVar(), "=", distK123).post();
@@ -93,6 +93,7 @@ public class Meso {
         // Minimize this Variable
         IntVar[] distances = new IntVar[]{distKB, distGA, distEB, distSB, distK123, distK45};
         model.sum(distances, "=", overallDistance).post();
+        //model.atLeastNValues(methods, model.intVar(3), Methods.WIEDERHOLUNG.ordinal());
 
         // CONSTRAINTS for weeks
         for (int week = 0; week <4; week++) {
@@ -174,17 +175,15 @@ public class Meso {
         }
     }
 
-    private void solveWithoutOptimization(){
+    public void solveWithoutOptimization(){
         Solver solver = model.getSolver();
         plan = solver.findOptimalSolution(overallDistance, false);
         System.out.println(plan);
-        solver.showStatistics();
+        solver.showShortStatistics();
     }
 
     private void solveMonth() {
-        Solution plan = new Solution(model);
         Solver solver = model.getSolver();
-
         solver.setSearch(
                 Search.intVarSearch(
                         new Largest(),
@@ -223,7 +222,7 @@ public class Meso {
     @Override
     public String toString() {
         return "ranges=" + targetMinutes + "<br>" +
-                "maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) + "<br>" ;
+                "maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) + "<br>";
     }
 }
 

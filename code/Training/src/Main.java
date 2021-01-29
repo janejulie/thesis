@@ -84,7 +84,7 @@ public class Main {
 
     private void bCalculatePressed(int month, String comp, int weeklyHours, int weeklyDays, String compDate) throws Exception {
         table.getSelectionModel().clearSelection();
-        table.setMonitor("loading");
+        targets.setText("loading");
         int iMaxWeeklyHours = weeklyHours * 60;
         if (comp == "Straßeneinzel") {
             plan = new SingledayCompetition(month, iMaxWeeklyHours, weeklyDays);
@@ -96,7 +96,6 @@ public class Main {
             throw new Exception();
         }
         table.createTableContent(plan.getSessions());
-        table.setMonitor("");
         targets.setText(plan.toString());
     }
 

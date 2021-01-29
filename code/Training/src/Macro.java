@@ -17,9 +17,14 @@ public abstract class Macro {
         double steps = 0.1;
         double minIntensity = 1 - steps*(numMonths-1);
         for (double i = minIntensity; i <= 1; i += steps){
+
             Meso meso = new Meso(i, getPerformanceRanges((int)(i/steps)), maxMinutesWeek, maxWeeklyDays);
             mesos.add(meso);
         }
+
+        mesos.parallelStream().forEach((meso) -> {
+            meso.solveWithoutOptimization();
+        });
 
         // collect all sessions
         for (Meso meso: mesos){
