@@ -1,0 +1,39 @@
+\chapter{Informatische Grundlagen}
+\label{sec:grundlagen:info}
+Da die Trainingsplanerstellung als Constraint-Satisfaction Problem modelliert wird, gibt dieses Kapitel einen Einblick in die Grundlagen dieser Technik.
+Um das Problem der Trainingsplanung zu lösen wird Constraint-Programmierung verwendet.\cite{ConstraintProgrammierung} 
+\TODO{Geile Quellen einfügen}
+
+\section{Constraint Programming}
+Dieses Programmierparadigma erweitert die logische Programmierung um Constaints (= Randbedingungen). Ohne eine konkrete Lösungsstrategie algorithmisch angeben zu müssen, kann nach einer Lösung des beschriebenen Problems gesucht werden. Dafür wird das Problem in Variablen und Constraints formalisiert. Variablen halten Informationen über das Problem fest. Constraint beschreiben Eigenschaften der Variablen oder definieren Beziehungen zwischen ihnen. Anschließend sucht der Solver nach einer Belegung der Variablen, sodass die definierten Constraints erfüllt sind. Diese Art von Modellierung ist ein Teilbereich der Künstlichen Intelligenz.
+\begin{itemize}
+    \item 
+\end{itemize}
+
+\subsection{Variablen}
+Zu jeder Unbekannten wird eine Variable definiert. Zusätzlich werden die endlichen Domains angegeben. Die Menge der Variablen dient als Grundlage für die Constraint Definition
+Variablen werden definiert indem die endliche Domain beinhaltet die möglichen Werte einer Variable.
+\begin{itemize}
+    \item Unterschied zwischend Variablen und Konstaten
+\end{itemize}
+
+\subsection{Constraints}
+Die namensgebenden Constraints beschreiben die Zusammenhänge und Beziehungen in prädikatenlogischen Aussagen. Die ordentliche Beschreibung der Domain einer Variable kann den Suchraum verkleinern und die Problemlösung performanter gestalten. Zu jedem Constraint gehört ein Propagierer, der die Domain der verwendeten Variablen filtert.
+CHR - Constraint Handling Rules
+Propagierer realisiert Constraint.
+
+\subsection{Solver}
+Um eine Lösung zu finden, die alle Constraints erfüllt kommt ein Solver zum Einsatz. Das Lösen des Problems wird auch Modelling genannt. Gegebenenfalls ist keine Lösung für das Constraint-System möglich. 
+\begin{itemize}
+    \item Time Limits oder andere Arten zur Steuerung des Solvers
+    \item 2 Stufige Vorgehensweise
+    \begin{itemize}
+        \item Domain verkleinern
+        \item Suchen der Lösung (+ Suchstrategien?)
+    \end{itemize}
+    \item Lösungsarten: Existenz einer Lösung, Lösungsinstanz, Optimieren nach Variablen
+\end{itemize}
+
+\subsection{Java choco-solver}
+\TODO{Hier schon Framework beschreiben oder erst in Kapitel Implementierung}
+Für diese Arbeit, die in Java \cite{arnold2005java} implementiert wird, kommt das Framework choco-solver \cite{ChocoSolverWeb} zum Einsatz. Java bietet nativ keine Constraint Programmierung an. Die Bereits bei der Arbeit zum Laufsport \ref{sec:verwandt} wurde dieses Framework verwendet, sodass es naheliegend ist ebenfalls mit Java und dem choco-solver zu arbeiten.
