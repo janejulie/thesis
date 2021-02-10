@@ -1,11 +1,6 @@
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
-import org.chocosolver.solver.search.strategy.Search;
-import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin;
-import org.chocosolver.solver.search.strategy.selectors.variables.InputOrder;
-import org.chocosolver.solver.search.strategy.selectors.variables.MaxRegret;
-import org.chocosolver.solver.search.strategy.selectors.variables.MinDelta;
 import org.chocosolver.solver.variables.IntVar;
 
 import java.util.Arrays;
@@ -38,6 +33,7 @@ public class Meso {
         System.out.println(this);
         this.model = new Model("training");
         this.solver = model.getSolver();
+        this.plan = new Solution(model);
 
         initializeModel();
         defineConstraints();
@@ -99,13 +95,13 @@ public class Meso {
                     model.arithm(minutes[day], "=", 0),
                     model.arithm(methods[day], "=", Method.PAUSE.index())
             );
-   /*
+
             // compensation training only in DL
             model.ifThen(
                     model.arithm(ranges[day][Range.KB.index()], ">", 0),
                     model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index())
             );
-
+            /*
             model.ifThen(
                     model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index()),
                     model.and(
@@ -131,25 +127,24 @@ public class Meso {
             );
 
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.INTERVALL.ordinal()),
+                    model.arithm(methods[day], "=", Method.INTERVALL.index()),
                     model.and(
-                            model.arithm(ranges[day][Range.GA.ordinal()], "=", 45),
+                            model.arithm(ranges[day][Range.GA.index()], "=", 45),
                             model.arithm(minutes[day], ">", 0)
                     )
             );
 
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.WIEDERHOLUNG.ordinal()),
+                    model.arithm(methods[day], "=", Method.WIEDERHOLUNG.index()),
                     model.and(
-                            model.arithm(ranges[day][Range.GA.ordinal()], "=", 60),
-                            model.arithm(ranges[day][Range.KB.ordinal()], "=", minutes[day].sub(60).div(10).mul(6).intVar()),
-                            model.arithm(ranges[day][Range.EB.ordinal()], "=", minutes[day].sub(60 + 15).div(10).mul(4).intVar()),
-                            model.arithm(ranges[day][Range.K123.ordinal()], "=", 0),
-                            model.arithm(ranges[day][Range.K45.ordinal()], "=", 0)
+                            model.arithm(ranges[day][Range.GA.index()], "=", 60),
+                            model.arithm(ranges[day][Range.KB.index()], "=", minutes[day].sub(60).div(10).mul(6).intVar()),
+                            model.arithm(ranges[day][Range.EB.index()], "=", minutes[day].sub(60 + 15).div(10).mul(4).intVar()),
+                            model.arithm(ranges[day][Range.K123.index()], "=", 0),
+                            model.arithm(ranges[day][Range.K45.index()], "=", 0)
                     )
             );
-
-     */
+             */
         }
 
         // constaint on ranges
@@ -177,12 +172,10 @@ public class Meso {
     }
 
     public void solveMonthOptimized() {
-        solver.limitTime("30s");
+        solver.limitTime("60s");
         /*
         solver.setSearch(Search.minDomUBSearch(minutes));
         solver.setSearch(Search.randomSearch(methods, 100));
-
-
         solver.setSearch(
                 Search.inputOrderLBSearch(overallDistance)
         );
@@ -190,18 +183,17 @@ public class Meso {
             solver.setSearch(Search.minDomUBSearch());
         }
         solver.setSearch(Search.inputOrderLBSearch(rangeSums));
+        */
 
-         */
-        Solution solution = new Solution(model);
-        // model.setObjective(false, overallDistance);
+        model.setObjective(false, overallDistance);
+
         int od = Integer.MAX_VALUE;
         while (solver.solve()){
-
             int newod = overallDistance.getValue();
+            System.out.println(newod);
             if (od > newod) {
                 od = overallDistance.getValue();
-                System.out.println(newod);
-                solution.record();
+                plan.record();
             }
         }
 

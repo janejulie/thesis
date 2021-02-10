@@ -37,8 +37,8 @@ public class Main {
                                 (Integer) iMonths.getSelectedItem(),
                                 (String) iCompetition.getSelectedItem(),
                                 (Integer) iWeeklyHours.getSelectedItem(),
-                                (Integer) iWeeklyDays.getSelectedItem(),
-                                iCompetitionDate.getValue().toString()
+                                (Integer) iWeeklyDays.getSelectedItem()
+                                //iCompetitionDate.getValue().toString()
                         );
                     } catch (Exception exception) {
                         exception.printStackTrace();
@@ -48,9 +48,9 @@ public class Main {
 
         inputPanel.add(new Label("Dauer in Monaten"));
         inputPanel.add(iMonths);
-        inputPanel.add(new Label("wöchentliche Trainingstage"));
+        inputPanel.add(new Label("max. wöchentliche Trainingstage"));
         inputPanel.add(iWeeklyDays);
-        inputPanel.add(new Label("wöchentliche Trainingsstunden"));
+        inputPanel.add(new Label("max. wöchentliche Trainingsstunden"));
         inputPanel.add(iWeeklyHours);
         inputPanel.add(new Label("Art des Wettkampfs"));
         inputPanel.add(iCompetition);
@@ -80,23 +80,22 @@ public class Main {
         frame.setVisible(true);
     }
 
-    private void bCalculatePressed(int month, String comp, int weeklyHours, int weeklyDays, String compDate) throws Exception {
+    private void bCalculatePressed(int month, String comp, int weeklyHours, int weeklyDays) throws Exception {
         table.getSelectionModel().clearSelection();
         targets.setText("loading");
         int iMaxWeeklyHours = weeklyHours * 60;
         try{
-            if (comp == "Straßeneinzel") {
-                plan = new SingledayCompetition(month, iMaxWeeklyHours, weeklyDays);
-            } else if (comp == "Rundstecke") {
-                plan = new TimetrialCompetition(month, iMaxWeeklyHours, weeklyDays);
-            } else if (comp == "Bergfahrt") {
-                plan = new MountainCompetition(month, iMaxWeeklyHours, weeklyDays);
-            } else {
-                throw new Exception();
+            switch (comp) {
+                case "Straßeneinzel" -> plan = new SingledayCompetition(month, iMaxWeeklyHours, weeklyDays);
+                case "Rundstecke" -> plan = new TimetrialCompetition(month, iMaxWeeklyHours, weeklyDays);
+                case "Bergfahrt" -> plan = new MountainCompetition(month, iMaxWeeklyHours, weeklyDays);
+                default -> throw new Exception("Wettkampfsart unbekannt");
             }
-            table.createTableContent(plan.getSessions());
             targets.setText(plan.toString());
+            plan.solvePlan();
+            table.createTableContent(plan.getSessions());
         } catch (NullPointerException e){
+            targets.setText("");
             table.setMonitor("No solution");
         }
     }
