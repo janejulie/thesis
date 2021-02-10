@@ -2,14 +2,17 @@ import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.search.strategy.Search;
-import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMax;
-import org.chocosolver.solver.search.strategy.selectors.variables.Largest;
+import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin;
+import org.chocosolver.solver.search.strategy.selectors.variables.InputOrder;
+import org.chocosolver.solver.search.strategy.selectors.variables.MaxRegret;
+import org.chocosolver.solver.search.strategy.selectors.variables.MinDelta;
 import org.chocosolver.solver.variables.IntVar;
+
 import java.util.Arrays;
 import java.util.HashMap;
 
 public class Meso {
-    private final HashMap<PerformanceRange, Integer> targetMinutes;
+    private final HashMap<Integer, Integer> targetMinutes;
     protected int[] maxWeekMinutes;
     protected int maxDays;
     protected int maxMinutesDay;
@@ -17,212 +20,226 @@ public class Meso {
     private IntVar[] minutes;
     private IntVar[] methods;
     private IntVar[][] ranges;
-    private IntVar trainingMinutes;
-    private IntVar sumKB, sumGA, sumEB, sumSB, sumK123, sumK45;
-    private IntVar distKB, distGA, distEB, distSB, distK123, distK45;
+    private IntVar[] rangeSums;
+    private IntVar[] rangeDistances;
     private IntVar overallDistance;
     protected Double[] mesoIntensity;
     protected Solution plan;
+    private Solver solver;
 
-    public Meso(double intensity, HashMap<PerformanceRange, Double> targetPercent, int maxMinutesWeek, int weeklyDays) {
+    public Meso(double intensity, HashMap<Range, Double> targetPercent, int maxMinutesWeek, int weeklyDays) {
         this.mesoIntensity = new Double[]{0.7, 0.8, 0.9, 1.0};
-        this.maxWeekMinutes = Arrays.stream(mesoIntensity).mapToInt(i->(int)(i*maxMinutesWeek*intensity)).toArray();
-        this.targetMinutes = new HashMap<PerformanceRange, Integer>();
-        targetPercent.forEach((k, v) -> targetMinutes.put(k, (int) (v*Arrays.stream(maxWeekMinutes).sum())));
+        this.maxWeekMinutes = Arrays.stream(mesoIntensity).mapToInt(i -> (int) (i * maxMinutesWeek * intensity)).toArray();
+        this.targetMinutes = new HashMap<>();
+        targetPercent.forEach((k, v) -> targetMinutes.put(k.index(), (int) (v * Arrays.stream(maxWeekMinutes).sum())));
         this.maxDays = weeklyDays;
-        this.maxMinutesDay = 60*10;
+        this.maxMinutesDay = 600;
+
+        System.out.println(this);
+        this.model = new Model("training");
+        this.solver = model.getSolver();
 
         initializeModel();
         defineConstraints();
-        //solveWithoutOptimization();
     }
 
     private void initializeModel() {
-        this.model = new Model("training");
-        this.minutes = model.intVarArray("minutes",28, 0, maxMinutesDay, false);
-        this.methods = model.intVarArray("methods",28,  0, Methods.values().length-1, false);
-        this.ranges = model.intVarMatrix("ranges", 28, PerformanceRange.values().length, 0, maxMinutesDay, false);
-        this.trainingMinutes = model.intVar("totalMinutes", 0, 28*maxMinutesDay);
-        this.overallDistance = model.intVar("distance", 0, 28*maxMinutesDay);
-        this.sumKB = model.intVar("sumKB", 0, 28*maxMinutesDay);
-        this.sumGA = model.intVar("sumGA", 0, 28*maxMinutesDay);
-        this.sumEB = model.intVar("sumEB", 0, 28*maxMinutesDay);
-        this.sumSB = model.intVar("sumSB", 0, 28*maxMinutesDay);
-        this.sumK123 = model.intVar("sumK123", 0, 28*maxMinutesDay);
-        this.sumK45 = model.intVar("sumK45", 0, 28*maxMinutesDay);
-        this.distKB = model.intVar("distKB", 0, 28*maxMinutesDay);
-        this.distGA = model.intVar("distGA", 0, 28*maxMinutesDay);
-        this.distEB = model.intVar("distEB", 0, 28*maxMinutesDay);
-        this.distSB = model.intVar("distSB", 0, 28*maxMinutesDay);
-        this.distK123 = model.intVar("distK123", 0, 28*maxMinutesDay);
-        this.distK45 = model.intVar("distK45", 0, 28*maxMinutesDay);
+        this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay, false);
+        this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1, false);
+        this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay, false);
+
+        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxDays * maxMinutesDay * 4, false);
+        this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, maxDays * maxMinutesDay * 4, false);
+        this.overallDistance = model.intVar("distance", 0, maxDays * maxMinutesDay * 4 * Range.values().length, false);
     }
 
-    private IntVar[] getColumn(IntVar[][] matrix, int colNum){
+    private IntVar[] getColumn(IntVar[][] matrix, int colNum) {
         IntVar[] column = new IntVar[matrix.length];
-        for (int rowNum = 0; rowNum<matrix.length; rowNum++){
+        for (int rowNum = 0; rowNum < matrix.length; rowNum++) {
             column[rowNum] = matrix[rowNum][colNum];
         }
         return column;
     }
-    private IntVar[] getColumn(IntVar[][] matrix, PerformanceRange performanceRange){
-        return getColumn(matrix, performanceRange.ordinal());
+
+    private IntVar[] getColumn(IntVar[][] matrix, Range range) {
+        return getColumn(matrix, range.index());
     }
 
-    public void defineConstraints(){
-        // get sum of trainingminutes to maximize them
-        model.sum(minutes, "=", trainingMinutes).post();
+    public void defineConstraints() {
 
-        // sum of minutes in different performance ranges -> optimize
-        model.sum(getColumn(ranges, PerformanceRange.KB), "=", sumKB).post();
-        model.sum(getColumn(ranges, PerformanceRange.GA), "=", sumGA).post();
-        model.sum(getColumn(ranges, PerformanceRange.EB), "=", sumEB).post();
-        model.sum(getColumn(ranges, PerformanceRange.SB), "=", sumSB).post();
-        model.sum(getColumn(ranges, PerformanceRange.K123), "=", sumK123).post();
-        model.sum(getColumn(ranges, PerformanceRange.K45), "=", sumK45).post();
-
-        // Calculate distance to the target Minutes for each performance ranges
-
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.KB)).abs().intVar(), "=", distKB).post();
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.GA)).abs().intVar(), "=" , distGA).post();
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.EB)).abs().intVar(), "=", distEB).post();
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.SB)).abs().intVar(), "=", distSB).post();
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.K123)).abs().intVar(), "=", distK123).post();
-        model.arithm(sumKB.dist(targetMinutes.get(PerformanceRange.K45)).abs().intVar(), "=", distK45).post();
-
-        // Minimize this Variable
-        IntVar[] distances = new IntVar[]{distKB, distGA, distEB, distSB, distK123, distK45};
-        model.sum(distances, "=", overallDistance).post();
-        //model.atLeastNValues(methods, model.intVar(3), Methods.WIEDERHOLUNG.ordinal());
-
-        // CONSTRAINTS for weeks
-        for (int week = 0; week <4; week++) {
-            int startDay = week*7;
-            IntVar[] weekVariable = new IntVar[]{minutes[startDay], minutes[startDay + 1], minutes[startDay + 2], minutes[startDay + 3], minutes[startDay + 4], minutes[startDay + 5], minutes[startDay + 6]};
-            // time limit on week trainings
-            model.sum(weekVariable, "<=", maxWeekMinutes[week]).post();
-            model.sum(weekVariable, ">", maxWeekMinutes[week]-30).post();
-
-            // dont train more than x days in a week
-            model.count(0, weekVariable, model.intVar(6-maxDays)).post();
+        // variation of methods
+        for (Method method : Method.values()) {
+            IntVar var = model.intVar("counter_" + method.toString(), 2, 28);
+            model.count(method.index(), methods, var).post();
         }
 
-        // Training minutes in 15 minute steps
-        for (int i = 0; i<minutes.length; i++){
-            model.mod(minutes[i], 15, 0).post();
-            model.sum(ranges[i], "=", minutes[i]).post();
+        // constraints on weeks
+        for (int week = 0; week < 4; week++) {
+            int startDay = week * 7;
+            IntVar[] weekVariable = new IntVar[]{minutes[startDay], minutes[startDay + 1], minutes[startDay + 2], minutes[startDay + 3], minutes[startDay + 4], minutes[startDay + 5], minutes[startDay + 6]};
 
-            // Kompensation nur als Dauerleistung
-            model.ifThen(
-                    model.arithm(ranges[i][PerformanceRange.KB.ordinal()], ">", 0),
-                    model.arithm(methods[i], "=", Methods.DAUERLEISTUNG.ordinal())
-            );
+            // dont train more than x minutes in a week with small fault tolerance
+            model.sum(weekVariable, "<=", maxWeekMinutes[week]).post();
+            model.sum(weekVariable, ">", maxWeekMinutes[week] - 30).post();
 
-            // PAUSE
+            // train x days in a week
+            model.count(0, weekVariable, model.intVar(7 - maxDays)).post();
+        }
+
+        // constraint on days
+        for (int day = 0; day < 28; day++) {
+            // minutes equal sum of minutes in ranges
+            model.sum(ranges[day], "=", minutes[day]).post();
+
+            // trainings always in 15 minute steps
+            model.mod(minutes[day], 15, 0).post();
+
+            // method is pause exactly when 0 training minutes
             model.ifOnlyIf(
-                    model.arithm(minutes[i], "=", 0),
-                    model.arithm(methods[i], "=", Methods.PAUSE.ordinal())
+                    model.arithm(minutes[day], "=", 0),
+                    model.arithm(methods[day], "=", Method.PAUSE.index())
             );
-//            model.ifThen(
-//                    model.arithm(methods[i], "=", Methods.DAUERLEISTUNG.ordinal()),
-//                    model.among
-//                    model.count(0, ranges[i], )
+   /*
+            // compensation training only in DL
+            model.ifThen(
+                    model.arithm(ranges[day][Range.KB.index()], ">", 0),
+                    model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index())
+            );
 
             model.ifThen(
-                    model.arithm(methods[i], "=", Methods.DAUERLEISTUNG.ordinal()),
+                    model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index()),
                     model.and(
                             model.or(
-                                model.and(
-                                        model.arithm(ranges[i][PerformanceRange.KB.ordinal()], ">", 60),
-                                        model.arithm(ranges[i][PerformanceRange.KB.ordinal()], "<", 60*4),
-                                        model.arithm(ranges[i][PerformanceRange.GA.ordinal()], "=", 0)
+                                    model.and(
+                                            model.arithm(ranges[day][Range.KB.index()], ">", 60),
+                                            model.arithm(ranges[day][Range.KB.index()], "<", 60 * 4),
+                                            model.arithm(ranges[day][Range.GA.index()], "=", 0)
 
-                                        ),
-                                model.and(
-                                        model.arithm(ranges[i][PerformanceRange.GA.ordinal()], ">", 60),
-                                        model.arithm(ranges[i][PerformanceRange.GA.ordinal()], "<", 60*4),
-                                        model.arithm(ranges[i][PerformanceRange.KB.ordinal()], "=", 0)
+                                    ),
+                                    model.and(
+                                            model.arithm(ranges[day][Range.GA.index()], ">", 60),
+                                            model.arithm(ranges[day][Range.GA.index()], "<", 60 * 4),
+                                            model.arithm(ranges[day][Range.KB.index()], "=", 0)
 
-                                        )
+                                    )
                             ),
-                            model.arithm(ranges[i][PerformanceRange.EB.ordinal()], "=", 0),
-                            model.arithm(ranges[i][PerformanceRange.SB.ordinal()], "=", 0),
-                            model.arithm(ranges[i][PerformanceRange.K123.ordinal()], "=", 0),
-                            model.arithm(ranges[i][PerformanceRange.K45.ordinal()], "=", 0)
+                            model.arithm(ranges[day][Range.EB.index()], "=", 0),
+                            model.arithm(ranges[day][Range.SB.index()], "=", 0),
+                            model.arithm(ranges[day][Range.K123.index()], "=", 0),
+                            model.arithm(ranges[day][Range.K45.index()], "=", 0)
                     )
             );
 
             model.ifThen(
-                    model.arithm(methods[i], "=", Methods.INTERVALL.ordinal()),
+                    model.arithm(methods[day], "=", Method.INTERVALL.ordinal()),
                     model.and(
-                            model.arithm(ranges[i][PerformanceRange.GA.ordinal()], "=", 45),
-                            model.arithm(minutes[i], ">", 0)
+                            model.arithm(ranges[day][Range.GA.ordinal()], "=", 45),
+                            model.arithm(minutes[day], ">", 0)
                     )
             );
 
             model.ifThen(
-                    model.arithm(methods[i], "=", Methods.WIEDERHOLUNG.ordinal()),
+                    model.arithm(methods[day], "=", Method.WIEDERHOLUNG.ordinal()),
                     model.and(
-                            model.arithm(ranges[i][PerformanceRange.GA.ordinal()], "=", 60),
-                            model.arithm(ranges[i][PerformanceRange.KB.ordinal()], "=", minutes[i].sub(60).div(10).mul(6).intVar()),
-                            model.arithm(ranges[i][PerformanceRange.EB.ordinal()], "=", minutes[i].sub(60+15).div(10).mul(4).intVar()),
-                            model.arithm(ranges[i][PerformanceRange.K123.ordinal()], "=", 0),
-                            model.arithm(ranges[i][PerformanceRange.K45.ordinal()], "=", 0)
+                            model.arithm(ranges[day][Range.GA.ordinal()], "=", 60),
+                            model.arithm(ranges[day][Range.KB.ordinal()], "=", minutes[day].sub(60).div(10).mul(6).intVar()),
+                            model.arithm(ranges[day][Range.EB.ordinal()], "=", minutes[day].sub(60 + 15).div(10).mul(4).intVar()),
+                            model.arithm(ranges[day][Range.K123.ordinal()], "=", 0),
+                            model.arithm(ranges[day][Range.K45.ordinal()], "=", 0)
                     )
             );
 
-
+     */
         }
+
+        // constaint on ranges
+        for (int range = 0; range < Range.values().length; range++) {
+            // sum of minutes in different performance ranges -> optimize
+            IntVar[] rangeColumm = new IntVar[28];
+            for (int day = 0; day < 28; day++) {
+                rangeColumm[day] = ranges[day][range];
+            }
+
+            model.sum(rangeColumm, "=", rangeSums[range]).post();
+            // Calculate distance to the target Minutes for each performance ranges
+            model.arithm(rangeSums[range].dist(targetMinutes.get(range)).intVar(), "=", rangeDistances[range]).post();
+        }
+
+        // Minimize this Variable
+        model.sum(rangeDistances, "=", overallDistance).post();
+
     }
 
-    public void solveWithoutOptimization(){
-        Solver solver = model.getSolver();
-        plan = solver.findOptimalSolution(overallDistance, false);
-        System.out.println(plan);
-        solver.showShortStatistics();
+    public void solveMonthSimple() {
+        solver.streamSolutions().forEach(s -> System.out.println(overallDistance.getValue()));
+        plan = solver.findSolution();
+        solver.printShortStatistics();
     }
 
-    private void solveMonth() {
-        Solver solver = model.getSolver();
+    public void solveMonthOptimized() {
+        solver.limitTime("30s");
+        /*
+        solver.setSearch(Search.minDomUBSearch(minutes));
+        solver.setSearch(Search.randomSearch(methods, 100));
+
+
         solver.setSearch(
-                Search.intVarSearch(
-                        new Largest(),
-                        new IntDomainMax(),
-                        overallDistance)
+                Search.inputOrderLBSearch(overallDistance)
         );
+                for (IntVar[] day : ranges){
+            solver.setSearch(Search.minDomUBSearch());
+        }
+        solver.setSearch(Search.inputOrderLBSearch(rangeSums));
 
-        // optimization
-        while(solver.solve()){
-            System.out.println(solver.getBestSolutionValue());
-        };
+         */
+        Solution solution = new Solution(model);
+        // model.setObjective(false, overallDistance);
+        int od = Integer.MAX_VALUE;
+        while (solver.solve()){
 
-        solver.showShortStatistics();
+            int newod = overallDistance.getValue();
+            if (od > newod) {
+                od = overallDistance.getValue();
+                System.out.println(newod);
+                solution.record();
+            }
+        }
+
+        System.out.println(overallDistance.getValue());
+        // Achtung die Werte von overalldistance kommen eben nicht an. Hier ist das Problem beim Tracken der Solution Objekte
+        solver.printStatistics();
     }
 
-    public Session[] getSessionsMonth(){
-        Session[] sessions = new Session[28];
-        for (int i = 0; i < 28; i++) {
-            HashMap dis = new HashMap();
-            dis.put(PerformanceRange.KB, plan.getIntVal(ranges[i][0]));
-            dis.put(PerformanceRange.GA, plan.getIntVal(ranges[i][1]));
-            dis.put(PerformanceRange.EB, plan.getIntVal(ranges[i][2]));
-            dis.put(PerformanceRange.SB, plan.getIntVal(ranges[i][3]));
-            dis.put(PerformanceRange.K123, plan.getIntVal(ranges[i][4]));
-            dis.put(PerformanceRange.K45, plan.getIntVal(ranges[i][5]));
+    public Session[] getSessionsMonth() {
+        if (plan != null) {
+            Session[] sessions = new Session[28];
+            for (int i = 0; i < 28; i++) {
+                HashMap dis = new HashMap();
+                dis.put(Range.KB, plan.getIntVal(ranges[i][0]));
+                dis.put(Range.GA, plan.getIntVal(ranges[i][1]));
+                dis.put(Range.EB, plan.getIntVal(ranges[i][2]));
+                dis.put(Range.SB, plan.getIntVal(ranges[i][3]));
+                dis.put(Range.K123, plan.getIntVal(ranges[i][4]));
+                dis.put(Range.K45, plan.getIntVal(ranges[i][5]));
 
-            int minute = plan.getIntVal(minutes[i]);
-            Methods meth = Methods.values()[plan.getIntVal(methods[i])];
+                int minute = plan.getIntVal(minutes[i]);
+                Method meth = Method.values()[plan.getIntVal(methods[i])];
 
-            sessions[i] = new Session(minute, meth , dis);
+                sessions[i] = new Session(minute, meth, dis);
 
+            }
+            return sessions;
+        } else {
+            throw new NullPointerException();
         }
-        return sessions;
     }
 
     @Override
     public String toString() {
         return "ranges=" + targetMinutes + "<br>" +
-                "maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) + "<br>";
+                "maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) + "<br>" +
+                "distances=" + Arrays.toString(rangeDistances) + "<br>" +
+                "over_dist=" + overallDistance + "<br>";
     }
 }
 

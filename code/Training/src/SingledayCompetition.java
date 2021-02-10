@@ -6,17 +6,12 @@ public class SingledayCompetition extends Macro {
     }
 
     @Override
-    HashMap<PerformanceRange, Double> getPerformanceRanges(int month) {
-        return performanceRanges;
-    }
-
-    @Override
     void setPerformanceRanges() {
-        performanceRanges.put(PerformanceRange.KB, 0.1);
-        performanceRanges.put(PerformanceRange.GA, 0.4);
-        performanceRanges.put(PerformanceRange.EB, 0.15);
-        performanceRanges.put(PerformanceRange.SB, 0.1);
-        performanceRanges.put(PerformanceRange.K123, 0.1);
-        performanceRanges.put(PerformanceRange.K45, 0.15);
+        performanceRanges.put(Range.KB, 0.1);
+        performanceRanges.put(Range.GA, 0.4);
+        performanceRanges.put(Range.EB, 0.15);
+        performanceRanges.put(Range.SB, 0.1);
+        performanceRanges.put(Range.K123, 0.1);
+        performanceRanges.put(Range.K45, 0.15);
     }
 }

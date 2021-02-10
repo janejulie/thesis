@@ -1,0 +1,67 @@
+\chapter{Zusammenfassung}
+\label{sec:zusammenfassung}
+\section{Ergebnis der Arbeit}
+\label{sec:zusammenfassung:ergebnis}
+Die Arbeit hat gezeigt, dass die Erstellung eines Trainingsplans durch Constaint Programmierung lösbar ist. Dabei sind sportartspezifische und radsportspezifische Anforderung an einen Trainingsplan definiert worden. Der Trainingsplan ist zyklisch und periodisch gestaltet.
+Die Individualität 
+\subsection{Evaluation der Individualität}
+\subsection{Evaluation der Übertragbarkeit}
+Auf Basis die
+
+\section{Ausblick}
+\label{sec:zusammenfassung:ausblick}
+Obwohl die Erstellung eines Trainingsplans erfolgreich umgesetzt wurde, existieren Anknüpfungspunkte zur Verbesserung. \newline
+
+\subsection{detailliertere Modellierung} Durch das Definieren weitere Abhängigkeiten steigt besonders die Individualität des Plans. Mögliche Größen mit Einfluss auf den Trainingsplan sind zu untersuchen. Darunter fallen Einfluss des Alters bzw. des Trainingsalters \cite[181]{EinfuerungTrainingswissenschaft}, des Geschlechts und die Leistungsgruppe \cite[S. 173]{Radsporttraining}.
+   
+\subsection{Ausweitung der Makrozyklen} 
+Desweiteren ist die Erweiterung der Makrozyklen auf die Vorbereitungsperiode und Übergangsperiode möglich. So wären die Bausteine für einen Jahresplan vorbereitet. 
+
+\subsection{Anderweitige Belastungen, ungeplante Ausfälle}
+Wie wirkt sich Training außerhalb des Radsports aus? z.B. Ein Fußballer, der auch Rennrad fährt.
+
+\subsection{Triathleten und andere Sportarten}
+Zusammenschluss der Arbeiten dann zu einem Trainingsplan spezifisch für die Triathlon Vorbereitung möglich?
+
+\subsection{Trainingsdokumentation}
+Erweiterung zur Trainingskontrolle und Trainingsdokumentation
+
+\subsection{Webapplikation}
+Fokus dieser Arbeit war die Modellierung eines optimierten Trainingsplans, weshalb sie als JAVA Applikation umgesetzt ist. Um das System der Zielgruppe zur Verfügung zu stellen ist eine Webapplikation zweckmäßiger. Durch die Definition einer Schnittstelle mithilfe von JSON-Objekten kapselt sich die Modellierung von der Benutzerinteraktion ab. Nötig ist hierfür das Deployment der Anwendung auf einem Java Server. Nachfolgend eine Möglichkeit für eine Schnittstelle.
+%\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=python]
+{ 
+    "num_months": 3,
+    "competition": "singleday",
+    "sport": "racing bike",
+    "competition_date": 22.02.2022,
+    "sessions": [
+        {
+            date: 01.02.2022,
+            minutes: 60,
+            method: "intervall",
+            sections: [
+                {
+                    length: 45,
+                    range: "GA"
+                },
+                {
+                    length: 5,
+                    range: "EB"
+                },
+                ...
+            ]
+        }
+    ], 
+}
+\end{lstlisting}
+%\end{minipage}
+
+\section{Notizen}
+%\begin{itemize}
+    %\item Wie die optimale Leistungsbelastung bestimmen ohne Leistungsmesser? Ist das überhaupt nötig, wenn keine Trainingskontrolle stattfinden soll? Test um Leistungsstand zu ermitteln?
+    \item Intensität in einer Trainingseinheit variieren? Angaben zur Intensitätsstufe/min -> ein Pool von möglichen Trainings empfehlen -> auch nicht, sondern Trainingsabschnitte nach Trainingsmethoden definieren
+    %\item Übertraining verhindern durch Regenerationssteuerung. Es werden keine Messungen/Anpassung im Trainingsverlauf vorgenommen, sodass Übertrainingszustände durch Einplanen von ausreichenden Regenerationsphasen verhindert werden sollen.
+    \item Leistungsnachlass durch zu lange Pausen/Regenerationsphasen verhindern (weniger als 5 Tage und 10 Tage)
+    %\item \TODO{Progression an Trainingsminuten eigentlich ja nicht Belastung dann oder? Also Intensität wäre nötig!}
+%\end{itemize}

@@ -46,12 +46,12 @@ public class TrainingTable extends JTable {
             for (int ii = 0; ii < 8; ii++){
                 tableContent[i][0] = sessions.get(i).getMinutes();
                 tableContent[i][1] = sessions.get(i).getMethod();
-                tableContent[i][2] = sessions.get(i).getDistribution().get(PerformanceRange.KB);
-                tableContent[i][3] = sessions.get(i).getDistribution().get(PerformanceRange.GA);
-                tableContent[i][4] = sessions.get(i).getDistribution().get(PerformanceRange.EB);
-                tableContent[i][5] = sessions.get(i).getDistribution().get(PerformanceRange.SB);
-                tableContent[i][6] = sessions.get(i).getDistribution().get(PerformanceRange.K123);
-                tableContent[i][7] = sessions.get(i).getDistribution().get(PerformanceRange.K45);
+                tableContent[i][2] = sessions.get(i).getDistribution().get(Range.KB);
+                tableContent[i][3] = sessions.get(i).getDistribution().get(Range.GA);
+                tableContent[i][4] = sessions.get(i).getDistribution().get(Range.EB);
+                tableContent[i][5] = sessions.get(i).getDistribution().get(Range.SB);
+                tableContent[i][6] = sessions.get(i).getDistribution().get(Range.K123);
+                tableContent[i][7] = sessions.get(i).getDistribution().get(Range.K45);
             }
         }
         Object[] header = {"Minuten", "Trainingsmethode", "KB", "GA", "EB", "SB", "K123", "K45"};
@@ -61,6 +61,7 @@ public class TrainingTable extends JTable {
     public void setMonitor(String text) {
         monitor.setText(text);
     }
+
     public void monitorStats(){
         String stats = "<html>Auswahl";
         stats += "<br>" + "min: " + sums.getOrDefault(getColumnName(0), 0).toString();

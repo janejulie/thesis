@@ -1,0 +1,46 @@
+\chapter{Informatische Grundlagen}
+\label{sec:grundlagen:info}
+Um das Problem der Trainingsplanung zu lösen wird Constraint Programmierung verwendet. Dieser Programmierstil ist deklarativ und ein Teilbereich der künstlichen Intelligenz.
+
+\section{Constraint Programmierung}
+Dieses Programmierparadigma entstand als Erweiterung der logischen Programmierung um Constaints (= Randbedingungen). Ohne eine konkrete Lösungsstrategie algorithmisch angeben zu müssen, kann nach einer Lösung des beschriebenen Problems gesucht werden. Dafür wird das Problem in Variablen und Constraints formalisiert. Die Variablen halten Informationen über das Problem fest. Ihre Eigenschaften und Beziehungen zwischen ihnen werden durch die Constraints beschrieben. Ein Lösungsinstanz ist eine Belegung der Variablen, so dass die definierten Constraints erfüllt sind. \cite{EssentialsConstraintProgrammierung, HandbookConstraintProgramming, HandbookKnowledgeRepresentation}
+
+\subsection{Variablen}
+Constraint Programmierung baut auf einer Menge von Variablen auf. Zu jeder unbekannten Größe im System wird eine Variable und ihr zugehöriger Wertebereich definiert. Das können boolsche, numerische und reelle Variablen sein.
+Für die Erstellung des Trainingsplan reicht die Betrachtung der Constraint Integer Programmierung. Dabei handelt es sich um die Schnittmenge von Constraint Programmierung und Integer Linear Programmierung. Die wesentliche Einschränkung betrifft die Wertebereiche der Variablen. Für die Belegung der Variablen kommen dann nur ganzzahlige numerische Werte mit endlichem Wertebereich in Frage. Diese nennt man auch Finite-Domain Variablen \TODO{Bezeichnung im Deutschen?}. Es gibt unterschiedliche Arten der Definition des Wertebereichs. Für Intervalle werden gebundene Wertebereiche verwendet, die über den kleinsten und größten Wert definiert werden, deshalb aber keine Werte im Intervall ausschließen können. Im Gegensatz dazu sind ungebundene Wertebereiche eine Menge der möglichen Werte. Wahrheitswerte können durch $variable \in \{0, 1\}$ abgebildet werden. Damit lässt sich auch eine Liste von Begriffen abbilden, in der diese festen Zahlen zugeordnet werden. Diese Repräsentation ist jedoch speicherlastiger. Abzuwägen ist, ob eine präzisere Bestimmung des Wertebereichs den Suchraum verkleinert, sodass die Problemlösung performanter ist.
+
+\subsection{Constraints}
+Die namensgebenden Constraints halten die Bedingungen fest, die in der Lösungsinstanz erfüllt sein müssen. Sie beschreiben Zusammenhänge und Beziehungen der Variablen in prädikatenlogischen Aussagen. \TODO{Hier war ein Fragezeichen} Zu jedem Constraint gehört ein Propagierer, der den Wertebereich der Variablen filtert.
+
+Im Global Constraint Katalog \cite{GlobalConstraintWeb} \TODO{Quelle checken} ist eine umfassende Auflistung der Constraints verfügbar. Im Folgenden ist ein Ausschnitt der Constraints aufgeführt, die relevant für die Trainingsplanerstellung sind.
+\TODO{Optional Arten von }
+%\subsubsection{arithmetische Constraints}
+%$+, -, \leq, \geq$
+%\subsubsection{logische Constraints}
+%If, and, or, sum
+
+\subsection{Lösungssuche}
+Im Allgemeinen erfolgt die Lösung des Problems rekursiv. Das Verfahren ist zweistufig. Im ersten Schritt wird nach aktuellen Annahmen die Propagation des Suchraums für jeden Constraint gestartet. Erreichen die Propagierer ihren Fixpunkt und können die Wertebereiche nicht weiter eingrenzen, folgt im nächsten Schritt die systematische Suche nach einer Lösung auf dem neuen Suchraum. Eine weitere Annahme über die Belegung einer Variable wird getroffen und der Suchprozess rekursiv aufgerufen. Dieser Vorgang wiederholt sich bis alle Variablen vollständig belegt sind. Ist in einem Schritt die Erfüllung der Constraints \textit{infeasible} (=widersprüchlich) erfolgt ein Backtracking, das die letzte Annahme ausschließt.
+Definiert man das Problem in der oben genannten Struktur, ist die Menge der Variablen und Constraints ein sogenanntes Constraint Satisfaction Problem (CSP). Diese zielen im Lösungsprozess auf den Beweis der Existenz einer Lösung und das Finden einer Lösungsinstanz ab. Es können mehrere lösende Belegungen existieren. Gegebenenfalls ist aber auch keine Lösung für das Constraint-System möglich. Das ist bei widersprüchlichen Constraints der Fall. 
+\subsubsection{Optimierung}
+Für Probleme mit einer Menge an Lösungsinstanzen wird die Optimierung der Lösungen interessant. Modelliert man ein Optimierungsproblem mit Constraint Programmierung, dann erweitert sich der rekursive Lösungsprozess zu einem Branch-and-Bound Algorithmus. Die Zielvariable wird bei jeder gefundenen Lösungsinstanz abgelegt. Neue Lösungen müssen diese je nach Optimierungsrichtung übertreffen oder unterschreiten.
+
+% Die Bereits bei der Arbeit zum Laufsport \ref{sec:verwandt} wurde dieses Framework verwendet, sodass es naheliegend ist ebenfalls mit Java und dem choco-solver zu arbeiten.
+
+% Time Limits oder andere Arten zur Steuerung des Solvers -> Kommt dann in Implementierung
+
+% Da die Trainingsplanerstellung als Constraint-Satisfaction Problem modelliert wird, gibt dieses Kapitel einen Einblick in die Grundlagen dieser Technik.
+
+% Unterschied zwischen Variablen und Konstanten
+
+% Um eine Lösung zu finden, die alle Constraints erfüllt kommt ein Solver zum Einsatz. Das Lösen des Problems wird auch Modelling genannt. \TODO{Ist das Modellierung oder Solution?}
+
+% Eine Lösungsinstanz ist eine Belegung der Variablen mit Werten aus dem Wertebereich so, dass die Constraints erfüllt sind. 
+
+% Ein Zusammenhänge können arithmetischer Natur sein $\le,\ge, =, +, -, * $, logische Operatoren
+
+% Hier kommen die Propagierer zu den Constraints zum Einsatz.
+
+% \subsubsection{Steuerung des Lösungsprozesses}
+
+% Im Lösungsprozess ist die Suchstrategie von zentraler Bedeutung um ein anwendbares Programm zu erhalten. Die Reihenfolge der Belegung der Variablen und die gewählten Werte können die Laufzeit stark beeinflussen. In den meisten Fällen wird hier auf ein Branch and Bound Algorithmus zurückgegriffen. 
