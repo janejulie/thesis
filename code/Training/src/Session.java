@@ -1,14 +1,18 @@
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.HashMap;
 
 public class Session {
     protected int minutes;
     protected Method method;
     protected HashMap<Range, Integer> distribution;
+    protected LocalDate day;
 
-    public Session(int min, Method method, HashMap<Range, Integer> distribution) {
+    public Session(int min, Method method, HashMap<Range, Integer> distribution, LocalDate day) {
         this.minutes = min;
         this.method = method;
         this.distribution = distribution;
+        this.day = day;
     }
 
     public int getMinutes() {
@@ -25,6 +29,10 @@ public class Session {
 
     public String prettyString(){
         return  "Session mit Beschreibung";
+    }
+
+    public LocalDate getDay() {
+        return day;
     }
 
     @Override

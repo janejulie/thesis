@@ -1,20 +1,28 @@
 import javax.swing.*;
 import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.stream.IntStream;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.property.UnitValue;
 
 public class Main {
     JFrame frame;
     JPanel mainPanel;
     TrainingTable table;
-    JButton bCalculate;
-    JLabel targets;
+    JLabel monitor;
     Macro plan;
 
     public Main() {
-        frame = new JFrame();
+        frame = new JFrame("Trainingsplanerstellung");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
         mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
@@ -22,26 +30,40 @@ public class Main {
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         JComboBox<Integer> iMonths = new JComboBox<Integer>(new Integer[]{3, 4, 5});
         JComboBox<Integer> iWeeklyDays = new JComboBox<Integer>(new Integer[]{1, 2, 3, 4, 5, 6});
-        iWeeklyDays.setSelectedItem(3);
+        iWeeklyDays.setSelectedItem(5);
         JComboBox<Integer> iWeeklyHours = new JComboBox<Integer>(IntStream.rangeClosed(5, 20).boxed().toArray(Integer[]::new));
-        iWeeklyHours.setSelectedItem(10);
+        iWeeklyHours.setSelectedItem(15);
         JComboBox<String> iCompetition = new JComboBox<String>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
-        JFormattedTextField iCompetitionDate = new JFormattedTextField(new SimpleDateFormat("dd.MM.yy").format(new Date()));
+        JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
         iCompetitionDate.setColumns(8);
+        JButton bCreatePDF = new JButton("PDF erstellen");
+        bCreatePDF.setVisible(false);
+        bCreatePDF.addActionListener(e -> {
+            try {
+                createPDF();
+            } catch (IOException fileNotFoundException) {
+                fileNotFoundException.printStackTrace();
+            }
+        });
 
-        bCalculate = new JButton("Erstelle Trainingsplan");
+        JButton bCalculate = new JButton("Erstelle Trainingsplan");
         bCalculate.addActionListener(e ->
                 {
+                    table.getSelectionModel().clearSelection();
+                    monitor.setText("loading");
                     try {
-                        bCalculatePressed(
+                        createPlan(
                                 (Integer) iMonths.getSelectedItem(),
                                 (String) iCompetition.getSelectedItem(),
                                 (Integer) iWeeklyHours.getSelectedItem(),
-                                (Integer) iWeeklyDays.getSelectedItem()
-                                //iCompetitionDate.getValue().toString()
+                                (Integer) iWeeklyDays.getSelectedItem(),
+                                (LocalDate) iCompetitionDate.getValue()
                         );
+                        updateMonitor();
+                        bCreatePDF.setVisible(true);
                     } catch (Exception exception) {
-                        exception.printStackTrace();
+                        JOptionPane.showMessageDialog(frame, "No Solution found");
+                        monitor.setText(plan.getRanges().toString());
                     }
                 }
         );
@@ -57,16 +79,16 @@ public class Main {
         inputPanel.add(new Label("Wettkampfstag"));
         inputPanel.add(iCompetitionDate);
 
-        targets = new JLabel();
+        monitor = new JLabel();
         JLabel monitor = new JLabel();
         JPanel wrap = new JPanel();
         wrap.add(inputPanel);
-        wrap.add(targets);
         wrap.add(monitor);
 
         JLabel lSelected = new JLabel("");
         JPanel output = new JPanel();
-        table = new TrainingTable(monitor);
+        table = new TrainingTable();
+        table.getSelectionModel().addListSelectionListener(event -> monitor.setText(table.monitorStats()));
 
         output.setLayout(new BorderLayout());
         output.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -74,34 +96,76 @@ public class Main {
         mainPanel.add(bCalculate);
         mainPanel.add(lSelected);
         mainPanel.add(output);
+        mainPanel.add(bCreatePDF);
+
         frame.getRootPane().setDefaultButton(bCalculate);
         frame.setContentPane(mainPanel);
         frame.setSize(new Dimension(1500, 800));
         frame.setVisible(true);
     }
 
-    private void bCalculatePressed(int month, String comp, int weeklyHours, int weeklyDays) throws Exception {
-        table.getSelectionModel().clearSelection();
-        targets.setText("loading");
-        int iMaxWeeklyHours = weeklyHours * 60;
-        try{
-            switch (comp) {
-                case "Straßeneinzel" -> plan = new SingledayCompetition(month, iMaxWeeklyHours, weeklyDays);
-                case "Rundstecke" -> plan = new TimetrialCompetition(month, iMaxWeeklyHours, weeklyDays);
-                case "Bergfahrt" -> plan = new MountainCompetition(month, iMaxWeeklyHours, weeklyDays);
-                default -> throw new Exception("Wettkampfsart unbekannt");
+    public void updateMonitor(){
+        String msg;
+        msg = plan.getRanges().toString();
+        monitor.setText(msg);
+    }
+
+    private void createPDF() throws IOException {
+        String destination = "pdf/trainingsplan" + LocalDateTime.now() + ".pdf";
+        File file = new File(destination);
+        file.getParentFile().mkdirs();
+        PdfWriter writer = new PdfWriter(destination);
+        PdfDocument pdf = new PdfDocument(writer);
+        Document document = new Document(pdf);
+        Table pdfTable = new Table(UnitValue.createPercentArray(9)).useAllAvailableWidth();
+
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            pdfTable.addCell(table.getColumnName(i));
+        }
+
+        for (int rows = 0; rows < table.getRowCount() - 1; rows++) {
+            for (int cols = 0; cols < table.getColumnCount(); cols++) {
+                pdfTable.setFontSize(8).addCell(table.getModel().getValueAt(rows, cols).toString());
+
             }
-            targets.setText(plan.toString());
-            plan.solvePlan();
+        }
+
+        String description =
+                plan.getName() + " am " + plan.getCompDay().toString() + "\n" +
+                "wöchentliche Stunden " + plan.getMaxTrainingMinutes()/60 +"\n" +
+                "wöchentliche Tage " + plan.getMaxTrainingDays() +"\n" +
+                "Anteile der Leistungsbereiche " + plan.getRanges().toString() +"\n";
+
+        for (int month = 0; month < plan.getNumMonths(); month++){
+            description += "Distanz " + (month+1) + ". Monat "+ plan.getMesos().get(month).getDistance() + "\n";
+        }
+
+        document.add(new Paragraph(description));
+        document.add(pdfTable);
+        document.close();
+
+        File myFile = new File(destination);
+        Desktop.getDesktop().open(myFile);
+    }
+
+    private void createPlan(int month, String comp, int weeklyHours, int weeklyDays, LocalDate compDay) throws Exception {
+        int iMaxWeeklyHours = weeklyHours * 60;
+        switch (comp) {
+            case "Straßeneinzel" -> plan = new SingledayCompetition(month, iMaxWeeklyHours, weeklyDays, compDay);
+            case "Rundstecke" -> plan = new TimetrialCompetition(month, iMaxWeeklyHours, weeklyDays, compDay);
+            case "Bergfahrt" -> plan = new MountainCompetition(month, iMaxWeeklyHours, weeklyDays, compDay);
+            default -> throw new Exception("Wettkampfsart unbekannt");
+        }
+        plan.solvePlan();
+        if (plan != null){
+            monitor.setText(plan.toString());
             table.createTableContent(plan.getSessions());
-        } catch (NullPointerException e){
-            targets.setText("");
-            table.setMonitor("No solution");
+        } else {
+            throw new Exception("No Solution found");
         }
     }
 
     public static void main(String[] args) {
         Main m = new Main();
-        m.bCalculate.doClick();
     }
 }

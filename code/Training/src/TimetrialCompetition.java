@@ -1,17 +1,20 @@
-import java.util.HashMap;
+import java.time.LocalDate;
 
 public class TimetrialCompetition extends Macro {
-    public TimetrialCompetition(int numMonth, int maxHours, int maxDays) {
-        super(numMonth, maxHours, maxDays);
+    public TimetrialCompetition(int numMonth, int maxHours, int maxDays, LocalDate compDay) {
+        super(numMonth, maxHours, maxDays, compDay);
     }
 
     @Override
     void setPerformanceRanges() {
-        performanceRanges.put(Range.KB, 0.1);
-        performanceRanges.put(Range.GA, 0.4);
-        performanceRanges.put(Range.EB, 0.15);
-        performanceRanges.put(Range.SB, 0.1);
-        performanceRanges.put(Range.K123, 0.1);
-        performanceRanges.put(Range.K45, 0.15);
+        ranges.put(Range.KB, 0.1);
+        ranges.put(Range.GA, 0.4);
+        ranges.put(Range.EB, 0.15);
+        ranges.put(Range.SB, 0.1);
+        ranges.put(Range.K123, 0.1);
+        ranges.put(Range.K45, 0.15);
+    }
+    public String getName(){
+        return "Rundfahrt";
     }
 }

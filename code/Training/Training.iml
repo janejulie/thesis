@@ -7,7 +7,12 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="iText7-Core-7" level="project" />
     <orderEntry type="library" name="choco-solver-4.10.6-jar-with-dependencies" level="project" />
+    <orderEntry type="library" name="com.itextpdf:kernel:7.1.2" level="project" />
+    <orderEntry type="library" name="com.itextpdf:io:7.1.2" level="project" />
+    <orderEntry type="library" name="com.itextpdf:layout:7.1.2" level="project" />
+    <orderEntry type="library" name="com.itextpdf:forms:7.1.2" level="project" />
+    <orderEntry type="library" name="com.itextpdf:pdfa:7.1.2" level="project" />
+    <orderEntry type="library" name="com.itextpdf:pdftest:7.1.2" level="project" />
   </component>
 </module>

@@ -3,7 +3,9 @@ import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.variables.IntVar;
 
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 
 public class Meso {
@@ -12,28 +14,29 @@ public class Meso {
     protected int maxDays;
     protected int maxMinutesDay;
     private Model model;
+    private Solution plan;
+    private Solver solver;
+
     private IntVar[] minutes;
     private IntVar[] methods;
     private IntVar[][] ranges;
     private IntVar[] rangeSums;
     private IntVar[] rangeDistances;
     private IntVar overallDistance;
-    protected Double[] mesoIntensity;
-    protected Solution plan;
-    private Solver solver;
+    private Double[] mesoIntensity;
+    private LocalDate startDay;
 
-    public Meso(double intensity, HashMap<Range, Double> targetPercent, int maxMinutesWeek, int weeklyDays) {
+
+    public Meso(double intensity, HashMap<Range, Double> targetPercent, int maxMinutesWeek, int weeklyDays, LocalDate startDay) {
         this.mesoIntensity = new Double[]{0.7, 0.8, 0.9, 1.0};
         this.maxWeekMinutes = Arrays.stream(mesoIntensity).mapToInt(i -> (int) (i * maxMinutesWeek * intensity)).toArray();
         this.targetMinutes = new HashMap<>();
         targetPercent.forEach((k, v) -> targetMinutes.put(k.index(), (int) (v * Arrays.stream(maxWeekMinutes).sum())));
         this.maxDays = weeklyDays;
         this.maxMinutesDay = 600;
+        this.startDay = startDay;
 
-        System.out.println(this);
         this.model = new Model("training");
-        this.solver = model.getSolver();
-        this.plan = new Solution(model);
 
         initializeModel();
         defineConstraints();
@@ -79,7 +82,7 @@ public class Meso {
             model.sum(weekVariable, ">", maxWeekMinutes[week] - 30).post();
 
             // train x days in a week
-            model.count(0, weekVariable, model.intVar(7 - maxDays)).post();
+            model.count(0, weekVariable, model.intVar(7 - maxDays, 8-maxDays)).post();
         }
 
         // constraint on days
@@ -89,19 +92,27 @@ public class Meso {
 
             // trainings always in 15 minute steps
             model.mod(minutes[day], 15, 0).post();
-
+            for (int range = 0; range < Range.values().length; range++){
+                model.mod(ranges[day][range], 5, 0).post();
+        }
             // method is pause exactly when 0 training minutes
             model.ifOnlyIf(
                     model.arithm(minutes[day], "=", 0),
                     model.arithm(methods[day], "=", Method.PAUSE.index())
             );
 
+            // intervall training always with warmup
+            model.ifThen(
+                    model.arithm(methods[day], "=", Method.INTERVALL.index()),
+                    model.arithm(ranges[day][Range.GA.index()], "=", 45)
+            );
             // compensation training only in DL
             model.ifThen(
                     model.arithm(ranges[day][Range.KB.index()], ">", 0),
                     model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index())
             );
-            /*
+
+            // extensive duration training
             model.ifThen(
                     model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index()),
                     model.and(
@@ -125,15 +136,8 @@ public class Meso {
                             model.arithm(ranges[day][Range.K45.index()], "=", 0)
                     )
             );
-
-            model.ifThen(
-                    model.arithm(methods[day], "=", Method.INTERVALL.index()),
-                    model.and(
-                            model.arithm(ranges[day][Range.GA.index()], "=", 45),
-                            model.arithm(minutes[day], ">", 0)
-                    )
-            );
-
+            /*
+            // repetition training
             model.ifThen(
                     model.arithm(methods[day], "=", Method.WIEDERHOLUNG.index()),
                     model.and(
@@ -144,6 +148,7 @@ public class Meso {
                             model.arithm(ranges[day][Range.K45.index()], "=", 0)
                     )
             );
+
              */
         }
 
@@ -172,33 +177,19 @@ public class Meso {
     }
 
     public void solveMonthOptimized() {
-        solver.limitTime("60s");
-        /*
-        solver.setSearch(Search.minDomUBSearch(minutes));
-        solver.setSearch(Search.randomSearch(methods, 100));
-        solver.setSearch(
-                Search.inputOrderLBSearch(overallDistance)
-        );
-                for (IntVar[] day : ranges){
-            solver.setSearch(Search.minDomUBSearch());
-        }
-        solver.setSearch(Search.inputOrderLBSearch(rangeSums));
-        */
-
+        solver = model.getSolver();
+        plan = new Solution(model);
+        solver.limitTime("2s");
         model.setObjective(false, overallDistance);
-
         int od = Integer.MAX_VALUE;
         while (solver.solve()){
             int newod = overallDistance.getValue();
             System.out.println(newod);
             if (od > newod) {
-                od = overallDistance.getValue();
+                od = newod;
                 plan.record();
             }
         }
-
-        System.out.println(overallDistance.getValue());
-        // Achtung die Werte von overalldistance kommen eben nicht an. Hier ist das Problem beim Tracken der Solution Objekte
         solver.printStatistics();
     }
 
@@ -217,7 +208,8 @@ public class Meso {
                 int minute = plan.getIntVal(minutes[i]);
                 Method meth = Method.values()[plan.getIntVal(methods[i])];
 
-                sessions[i] = new Session(minute, meth, dis);
+                LocalDate day = startDay.plusDays(i);
+                sessions[i] = new Session(minute, meth, dis, day);
 
             }
             return sessions;
@@ -226,12 +218,17 @@ public class Meso {
         }
     }
 
+    public Solution getPlan() {
+        return plan;
+    }
+
     @Override
     public String toString() {
-        return "ranges=" + targetMinutes + "<br>" +
-                "maxWeekMinutes=" + Arrays.toString(maxWeekMinutes) + "<br>" +
-                "distances=" + Arrays.toString(rangeDistances) + "<br>" +
-                "over_dist=" + overallDistance + "<br>";
+        return "distance = " + overallDistance;
+    }
+
+    public String getDistance() {
+        return overallDistance.toString();
     }
 }
 
