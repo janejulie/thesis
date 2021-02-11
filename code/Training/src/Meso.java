@@ -58,7 +58,7 @@ public class Meso {
     public void defineConstraints() {
         // variation of methods min 2 of every method
         for (Method method : Method.values()) {
-            IntVar var = model.intVar("counter_" + method.toString(), 2, 28);
+            IntVar var = model.intVar("counter_" + method.toString(), 2, 20);
             model.count(method.index(), methods, var).post();
         }
         // constraints on weeks
@@ -114,13 +114,12 @@ public class Meso {
                             )
                     )
             );
-            /*
             model.ifThen(
                     model.arithm(methods[day], "=", Method.FAHRTSPIEL.index()),
                     model.or(
                             // Extensives Fahrtspiel
                             model.and(
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
+                                    model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 240)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(30, 240)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
@@ -129,15 +128,15 @@ public class Meso {
                             ),
                             //Schnelligkeitsausdauer
                             model.and(
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
+                                    model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 180)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(0, 120)),
+                                    model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             )
                     )
-            );*/
+            );
 
             model.ifThen(
                     model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index()),
