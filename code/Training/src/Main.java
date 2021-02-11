@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -88,7 +89,11 @@ public class Main {
         JLabel lSelected = new JLabel("");
         JPanel output = new JPanel();
         table = new TrainingTable();
-        table.getSelectionModel().addListSelectionListener(event -> monitor.setText(table.monitorStats()));
+        table.getSelectionModel().addListSelectionListener(event -> {
+            String targets = plan.getTargets();
+            monitor.setText("<html>"+ targets+"<br>" + table.monitorStats() + "<br><html>");
+         }
+        );
 
         output.setLayout(new BorderLayout());
         output.add(new JScrollPane(table), BorderLayout.CENTER);

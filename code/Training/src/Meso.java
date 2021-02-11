@@ -5,7 +5,6 @@ import org.chocosolver.solver.variables.IntVar;
 
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 
 public class Meso {
@@ -82,7 +81,7 @@ public class Meso {
             model.sum(weekVariable, ">", maxWeekMinutes[week] - 30).post();
 
             // train x days in a week
-            model.count(0, weekVariable, model.intVar(7 - maxDays, 8-maxDays)).post();
+            model.count(0, weekVariable, model.intVar(7 - maxDays)).post();
         }
 
         // constraint on days
@@ -170,21 +169,23 @@ public class Meso {
 
     }
 
+    /*
     public void solveMonthSimple() {
         solver.streamSolutions().forEach(s -> System.out.println(overallDistance.getValue()));
         plan = solver.findSolution();
         solver.printShortStatistics();
     }
+    */
 
     public void solveMonthOptimized() {
         solver = model.getSolver();
         plan = new Solution(model);
-        solver.limitTime("2s");
+        solver.limitTime("20s");
         model.setObjective(false, overallDistance);
         int od = Integer.MAX_VALUE;
         while (solver.solve()){
             int newod = overallDistance.getValue();
-            System.out.println(newod);
+            //System.out.println(newod);
             if (od > newod) {
                 od = newod;
                 plan.record();

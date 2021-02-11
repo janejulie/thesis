@@ -42,23 +42,19 @@ public class TrainingTable extends JTable {
         sums = new HashMap<>();
         int[] rows = getSelectedRows();
         for (int rowNum : rows) {
-            for (int colNum = 0; colNum < getColumnCount(); colNum++) {
+            for (int colNum = 3; colNum < getColumnCount(); colNum++) {
                 String colName = getColumnName(colNum);
-                if (!colName.equals("Trainingsmethode")){
-                    int newVal = (int) getValueAt(rowNum, colNum) + sums.getOrDefault(colName, 0);
-                    sums.put(colName, newVal);
-                }
+                int newVal = (int) getValueAt(rowNum, colNum) + sums.getOrDefault(colName, 0);
+                sums.put(colName, newVal);
             }
         }
-        String stats = "<html>Auswahl";
-        stats += "<br>" + "min: " + sums.getOrDefault(getColumnName(0), 0).toString();
-        stats += "<br>" + "KB: " + sums.getOrDefault(getColumnName(2), 0).toString();
-        stats += "<br>" + "GA: " + sums.getOrDefault(getColumnName(3), 0).toString();
-        stats += "<br>" + "EB: " + sums.getOrDefault(getColumnName(4), 0).toString();
-        stats += "<br>" + "SB: " + sums.getOrDefault(getColumnName(5), 0).toString();
-        stats += "<br>" + "K123: " + sums.getOrDefault(getColumnName(6), 0).toString();
-        stats += "<br>" + "K45: " + sums.getOrDefault(getColumnName(7), 0).toString();
-        stats += "</html>";
+        String stats = "Auswahl:";
+        stats += " KB: " + sums.getOrDefault(getColumnName(3), 0).toString();
+        stats += " GA: " + sums.getOrDefault(getColumnName(4), 0).toString();
+        stats += " EB: " + sums.getOrDefault(getColumnName(5), 0).toString();
+        stats += " SB: " + sums.getOrDefault(getColumnName(6), 0).toString();
+        stats += " K123: " + sums.getOrDefault(getColumnName(7), 0).toString();
+        stats += " K45: " + sums.getOrDefault(getColumnName(8), 0).toString();
         return stats;
     }
 }

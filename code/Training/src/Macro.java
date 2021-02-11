@@ -1,9 +1,7 @@
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.stream.DoubleStream;
 
 public abstract class Macro {
@@ -36,7 +34,6 @@ public abstract class Macro {
     }
 
     public void solvePlan() {
-        // parallelize solving for every single month
         mesos.parallelStream().forEach((meso) -> {
             meso.solveMonthOptimized();
         });
@@ -53,8 +50,6 @@ public abstract class Macro {
     }
 
     public ArrayList<Session> getSessions() {
-        // collect all sessions
-
         ArrayList<Session> sessions = new ArrayList<>();
         for (Meso meso : mesos) {
             sessions.addAll(Arrays.asList(meso.getSessionsMonth()));
@@ -88,6 +83,10 @@ public abstract class Macro {
 
     public ArrayList<Meso> getMesos() {
         return mesos;
+    }
+
+    public String getTargets(){
+        return mesos.toString();
     }
 
     @Override
