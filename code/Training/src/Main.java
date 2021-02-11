@@ -31,9 +31,9 @@ public class Main {
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         JComboBox<Integer> iMonths = new JComboBox<Integer>(new Integer[]{3, 4, 5});
         JComboBox<Integer> iWeeklyDays = new JComboBox<Integer>(new Integer[]{1, 2, 3, 4, 5, 6});
-        iWeeklyDays.setSelectedItem(5);
+        iWeeklyDays.setSelectedItem(3);
         JComboBox<Integer> iWeeklyHours = new JComboBox<Integer>(IntStream.rangeClosed(5, 20).boxed().toArray(Integer[]::new));
-        iWeeklyHours.setSelectedItem(15);
+        iWeeklyHours.setSelectedItem(6);
         JComboBox<String> iCompetition = new JComboBox<String>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
         JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
         iCompetitionDate.setColumns(8);
@@ -63,6 +63,7 @@ public class Main {
                         updateMonitor();
                         bCreatePDF.setVisible(true);
                     } catch (Exception exception) {
+                        exception.printStackTrace();
                         JOptionPane.showMessageDialog(frame, "No Solution found");
                         monitor.setText(plan.getRanges().toString());
                     }
@@ -142,7 +143,7 @@ public class Main {
                 "Anteile der Leistungsbereiche " + plan.getRanges().toString() +"\n";
 
         for (int month = 0; month < plan.getNumMonths(); month++){
-            description += "Distanz " + (month+1) + ". Monat "+ plan.getMesos().get(month).getDistance() + "\n";
+            description += "Distanz " + (month+1) + ". Monat "+ plan.getMesos().get(month).toString() + "\n";
         }
 
         document.add(new Paragraph(description));
