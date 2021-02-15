@@ -7,16 +7,22 @@ public class Session {
     protected Method method;
     protected HashMap<Range, Integer> distribution;
     protected LocalDate day;
+    protected String type;
 
-    public Session(int min, Method method, HashMap<Range, Integer> distribution, LocalDate day) {
+    public Session(int min, Method method, HashMap<Range, Integer> distribution, LocalDate day, int type) {
         this.minutes = min;
         this.method = method;
         this.distribution = distribution;
         this.day = day;
+        this.type = SessionName.values()[type].name().replace("_", " ");
     }
 
     public int getMinutes() {
         return minutes;
+    }
+
+    public String getName(){
+        return type;
     }
 
     public Method getMethod() {

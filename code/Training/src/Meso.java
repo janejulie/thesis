@@ -20,6 +20,7 @@ public class Meso {
 
     private IntVar[] minutes;
     private IntVar[] methods;
+    private IntVar[] names;
     private IntVar[][] ranges;
     private IntVar[] rangeSums;
     private IntVar[] rangeDistances;
@@ -29,12 +30,10 @@ public class Meso {
 
 
     public Meso(double intensity, HashMap<Range, Double> targetPercent, int maxMinutesWeek, int weeklyDays, LocalDate startDay) {
-        this.mesoIntensity = new Double[]{0.7, 0.8, 0.9, 1.0};
+        this.mesoIntensity = new Double[]{0.8, 0.9, 1.0, 0.6};
         this.maxWeekMinutes = Arrays.stream(mesoIntensity).mapToInt(i -> (int) (i * maxMinutesWeek * intensity)).toArray();
         this.targetMinutes = new HashMap<>();
         targetPercent.forEach((k, v) -> targetMinutes.put(k.index(), (int) (v * Arrays.stream(maxWeekMinutes).sum())));
-        int sum = targetMinutes.values().stream().reduce(0, Integer::sum);
-        System.out.println(targetMinutes + " summe = " + sum);
         this.maxDays = weeklyDays;
         this.maxMinutesDay = 360;
         this.startDay = startDay;
@@ -49,6 +48,7 @@ public class Meso {
         this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1, false);
         this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay, true);
         this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay, false);
+        this.names = model.intVarArray("name", 28, 0, 11, false);
 
         this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxDays * maxMinutesDay * 4, true);
         this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120, false);
@@ -66,11 +66,12 @@ public class Meso {
             int startDay = week * 7;
             IntVar[] weekVariable = new IntVar[]{minutes[startDay], minutes[startDay + 1], minutes[startDay + 2], minutes[startDay + 3], minutes[startDay + 4], minutes[startDay + 5], minutes[startDay + 6]};
 
-            // dont train more than x minutes in a week with small fault tolerance
+            // dont train more than x minutes in a week
             model.sum(weekVariable, "<=", maxWeekMinutes[week]).post();
+            //model.sum(weekVariable, "<", maxWeekMinutes[week]-30).post();
 
             // train x days in a week
-            model.count(0, weekVariable, model.intVar(7 - maxDays, 6)).post();
+            model.count(0, weekVariable, model.intVar(7 - maxDays, 8-maxDays)).post();
         }
 
         // constraint on days
@@ -90,6 +91,10 @@ public class Meso {
                     model.arithm(minutes[day], "=", 0),
                     model.arithm(methods[day], "=", Method.PAUSE.index())
             );
+            model.ifThen(
+                    model.arithm(methods[day], "=", Method.PAUSE.index()),
+                    model.arithm(names[day], "=", SessionName.Pause.index())
+            );
 
             model.ifThen(
                     model.arithm(methods[day], "=", Method.INTERVALL.index()),
@@ -101,7 +106,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", model.intVar(15, 120))
+                                    model.arithm(ranges[day][Range.K45.index()], "=", model.intVar(15, 120)),
+                                    model.arithm(names[day], "=", SessionName.Intensive_Kraftausdauer.index())
                             ),
                             //Schnelligkeitsausdauer
                             model.and(
@@ -110,7 +116,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 45)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Schnelligkeitsausdauer.index())
                             )
                     )
             );
@@ -124,16 +131,18 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(30, 240)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Extensives_Fahrtspiel.index())
                             ),
-                            //Schnelligkeitsausdauer
+                            //Intensives Fahrtspiel
                             model.and(
                                     model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 180)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Intensives_Fahrtspiel.index())
                             )
                     )
             );
@@ -148,7 +157,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Kompensationsfahrt.index())
                             ),
                             // 2 und 3 Extensive Fahrt und Fettstoffwechsel
                             model.and(
@@ -157,7 +167,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Extensive_Fahrt.index())
                             ),
                             // 5 Intensive Fahrt
                             model.and(
@@ -166,7 +177,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Intensive_Fahrt.index())
                             ),
                             // 8 Extensive Kraftausdauer
                             model.and(
@@ -175,7 +187,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", model.intVar(30, 150)),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Extensive_Kraftfahrt.index())
                             ),
                             // 13 Einzelfahrt
                             model.and(
@@ -184,7 +197,8 @@ public class Meso {
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(30, 60)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                                    model.arithm(names[day], "=", SessionName.Einzelzeitfahrt.index())
                             )
                     )
             );
@@ -198,7 +212,8 @@ public class Meso {
                             model.arithm(ranges[day][Range.EB.index()], "=", 0),
                             model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 100)),
                             model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                            model.arithm(ranges[day][Range.K45.index()], "=", 0)
+                            model.arithm(ranges[day][Range.K45.index()], "=", 0),
+                            model.arithm(names[day], "=", SessionName.Sprinttraining.index())
                     )
             );
         }
@@ -219,22 +234,14 @@ public class Meso {
         solver = model.getSolver();
         plan = new Solution(model);
 
-        System.out.println(targetMinutes);
         solver.plugMonitor((IMonitorSolution) () -> {
                     plan.record();
-                    printPretty();
                 }
         );
 
         solver.limitTime("30s");
         solver.showShortStatistics();
         solver.findOptimalSolution(overallDistance, false);
-    }
-
-    private void printPretty() {
-        for (IntVar i : rangeDistances) {
-            System.out.println(i);
-        }
     }
 
 
@@ -252,9 +259,9 @@ public class Meso {
 
                 int minute = plan.getIntVal(minutes[i]);
                 Method meth = Method.values()[plan.getIntVal(methods[i])];
-
+                int name = names[i].getValue();
                 LocalDate day = startDay.plusDays(i);
-                sessions[i] = new Session(minute, meth, dis, day);
+                sessions[i] = new Session(minute, meth, dis, day, name);
 
             }
             return sessions;
@@ -262,14 +269,18 @@ public class Meso {
             throw new NullPointerException();
         }
     }
+    public String getTargetMinutes(){
+        int sum = targetMinutes.values().stream().reduce(0, Integer::sum);
+        return targetMinutes + " summe = " + sum;
+    }
 
-    public Solution getPlan() {
-        return plan;
+    public int getDistance() {
+        return overallDistance.getValue();
     }
 
     @Override
     public String toString() {
-        return this.getClass() + "distance = " + overallDistance;
+        return this.getClass() + "distance = " + overallDistance.getValue();
     }
 }
 

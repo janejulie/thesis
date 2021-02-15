@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.stream.IntStream;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -29,12 +28,12 @@ public class Main {
 
         // GUI Input elements
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
-        JComboBox<Integer> iMonths = new JComboBox<Integer>(new Integer[]{3, 4, 5});
-        JComboBox<Integer> iWeeklyDays = new JComboBox<Integer>(new Integer[]{1, 2, 3, 4, 5, 6});
-        iWeeklyDays.setSelectedItem(3);
-        JComboBox<Integer> iWeeklyHours = new JComboBox<Integer>(IntStream.rangeClosed(5, 20).boxed().toArray(Integer[]::new));
-        iWeeklyHours.setSelectedItem(6);
-        JComboBox<String> iCompetition = new JComboBox<String>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
+        JComboBox<Integer> iMonths = new JComboBox<>(new Integer[]{3, 4, 5});
+        JComboBox<Integer> iWeeklyDays = new JComboBox<>(new Integer[]{2, 3, 4, 5, 6});
+        iWeeklyDays.setSelectedItem(6);
+        JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(5, 20).boxed().toArray(Integer[]::new));
+        iWeeklyHours.setSelectedItem(15);
+        JComboBox<String> iCompetition = new JComboBox<>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
         JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
         iCompetitionDate.setColumns(8);
         JButton bCreatePDF = new JButton("PDF erstellen");
@@ -64,7 +63,7 @@ public class Main {
                         bCreatePDF.setVisible(true);
                     } catch (Exception exception) {
                         exception.printStackTrace();
-                        JOptionPane.showMessageDialog(frame, "No Solution found");
+                        JOptionPane.showMessageDialog(frame, "Keine Lösung in der Zeit gefunden");
                         monitor.setText(plan.getRanges().toString());
                     }
                 }
@@ -91,8 +90,11 @@ public class Main {
         JPanel output = new JPanel();
         table = new TrainingTable();
         table.getSelectionModel().addListSelectionListener(event -> {
-            String targets = plan.getTargets();
-            monitor.setText("<html>"+ targets+"<br>" + table.monitorStats() + "<br><html>");
+            String targets = "<html>";
+            targets += getMonitorString().replace("\n", "<br>");
+            targets += table.monitorStats();
+            targets += "</html>";
+            monitor.setText(targets);
          }
         );
 
@@ -117,7 +119,7 @@ public class Main {
     }
 
     private void createPDF() throws IOException {
-        String destination = "pdf/trainingsplan" + LocalDateTime.now() + ".pdf";
+        String destination = "pdf/trainingsplan"+plan.getClass().toString() + LocalDateTime.now() + ".pdf";
         File file = new File(destination);
         file.getParentFile().mkdirs();
         PdfWriter writer = new PdfWriter(destination);
@@ -132,19 +134,10 @@ public class Main {
         for (int rows = 0; rows < table.getRowCount() - 1; rows++) {
             for (int cols = 0; cols < table.getColumnCount(); cols++) {
                 pdfTable.setFontSize(8).addCell(table.getModel().getValueAt(rows, cols).toString());
-
             }
         }
 
-        String description =
-                plan.getName() + " am " + plan.getCompDay().toString() + "\n" +
-                "wöchentliche Stunden " + plan.getMaxTrainingMinutes()/60 +"\n" +
-                "wöchentliche Tage " + plan.getMaxTrainingDays() +"\n" +
-                "Anteile der Leistungsbereiche " + plan.getRanges().toString() +"\n";
-
-        for (int month = 0; month < plan.getNumMonths(); month++){
-            description += "Distanz " + (month+1) + ". Monat "+ plan.getMesos().get(month).toString() + "\n";
-        }
+        String description = getMonitorString();
 
         document.add(new Paragraph(description));
         document.add(pdfTable);
@@ -152,6 +145,20 @@ public class Main {
 
         File myFile = new File(destination);
         Desktop.getDesktop().open(myFile);
+    }
+
+    private String getMonitorString() {
+        String description =
+                plan.getName() + " am " + plan.getCompDay().toString() + "\n" +
+                "wöchentliche Stunden " + plan.getMaxTrainingMinutes()/60 +"\n" +
+                "wöchentliche Tage " + plan.getMaxTrainingDays() +"\n" +
+                "Anteile der Leistungsbereiche " + plan.getRanges().toString() +"\n";
+
+        for (int month = 0; month < plan.getNumMonths(); month++){
+            description += "Zielminuten " + (month+1) + ". Monat " + plan.getMesos().get(month).getTargetMinutes() + "\n";
+            description += (month+1) + ". Monat Distanz "+ plan.getMesos().get(month).getDistance() + "\n";
+        }
+        return description;
     }
 
     private void createPlan(int month, String comp, int weeklyHours, int weeklyDays, LocalDate compDay) throws Exception {

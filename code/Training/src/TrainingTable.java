@@ -21,19 +21,20 @@ public class TrainingTable extends JTable {
     }
 
     public void createTableContent(ArrayList<Session> sessions){
-        Object[][] tableContent = new Object[sessions.size()][9];
+        Object[][] tableContent = new Object[sessions.size()][10];
         for (int i = 0; i<sessions.size(); i++){
                 tableContent[i][0] = sessions.get(i).getDay();
-                tableContent[i][1] = sessions.get(i).getMinutes();
+                tableContent[i][1] = sessions.get(i).getName();
                 tableContent[i][2] = sessions.get(i).getMethod();
-                tableContent[i][3] = sessions.get(i).getDistribution().get(Range.KB);
-                tableContent[i][4] = sessions.get(i).getDistribution().get(Range.GA);
-                tableContent[i][5] = sessions.get(i).getDistribution().get(Range.EB);
-                tableContent[i][6] = sessions.get(i).getDistribution().get(Range.SB);
-                tableContent[i][7] = sessions.get(i).getDistribution().get(Range.K123);
-                tableContent[i][8] = sessions.get(i).getDistribution().get(Range.K45);
+                tableContent[i][3] = sessions.get(i).getMinutes();
+                tableContent[i][4] = sessions.get(i).getDistribution().get(Range.KB);
+                tableContent[i][5] = sessions.get(i).getDistribution().get(Range.GA);
+                tableContent[i][6] = sessions.get(i).getDistribution().get(Range.EB);
+                tableContent[i][7] = sessions.get(i).getDistribution().get(Range.SB);
+                tableContent[i][8] = sessions.get(i).getDistribution().get(Range.K123);
+                tableContent[i][9] = sessions.get(i).getDistribution().get(Range.K45);
         }
-        Object[] header = {"Datum", "Minuten", "Trainingsmethode", "KB", "GA", "EB", "SB", "K123", "K45"};
+        Object[] header = {"Datum", "Name", "Trainingsmethode", "Dauer", "KB", "GA", "EB", "SB", "K123", "K45"};
         ((DefaultTableModel) getModel()).setDataVector(tableContent, header);
     }
 

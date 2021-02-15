@@ -8,10 +8,10 @@ public class SingledayCompetition extends Macro {
     @Override
     void setPerformanceRanges() {
         ranges.put(Range.KB, 0.05);
-        ranges.put(Range.GA, 0.45);
-        ranges.put(Range.EB, 0.15);
-        ranges.put(Range.SB, 0.1);
-        ranges.put(Range.K123, 0.1);
+        ranges.put(Range.GA, 0.35);
+        ranges.put(Range.EB, 0.25);
+        ranges.put(Range.SB, 0.10);
+        ranges.put(Range.K123, 0.10);
         ranges.put(Range.K45, 0.15);
     }
     public String getName(){

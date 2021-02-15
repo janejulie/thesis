@@ -1,0 +1,91 @@
+\chapter{Zusammenfassung}
+\label{sec:zusammenfassung}
+\section{Ergebnis der Arbeit}
+\label{sec:zusammenfassung:ergebnis}
+Die Arbeit hat gezeigt, dass die Erstellung eines Trainingsplans durch Constraint Programmierung lösbar ist. Zu diesem Zweck sind die trainingswissenschaftlichen Anforderung an einen Trainingsplan definiert worden. Der Trainingsplan beachtet die Trainingsprinzipien der Zyklisierung, Periodisierung und progressiven Belastung. Er plant die Aufbauphase in Abhängigkeit der angegebenen Wettkampfsdisziplin. Welche Leistungsbereiche des Radsports abgedeckt werden steht damit in einem direkten Zusammenhang.\newline 
+Zusammengesetzt wird ein Plan nach dem Baukastenprinzip. Die dynamisch definierten Trainingseinheiten sind Bausteine und haben verschiedene Anteile an den Leistungsbereichen. Das mathematische Modell optimiert die Auswahl der Einheiten, sodass die Anteile der Leistungsbereiche im Plan denen des Trainingsziels entsprechen. Begrenzt wird der wöchentliche Trainingsumfang in Stunden aber auch Tagen. Auch die Variation der Trainingsmethoden nimmt Einfluss auf die Wahl.\newline
+Die Modellierung ist in eine eigenständige Anwendung umgesetzt. Die Benutzung erfolgt über eine übersichtliche grafische Benutzeroberfläche. Auf Ebene der Mesozyklen parallelisiert die Software das Lösen der einzelnen Monate. Zusammengesetzt ergeben diese den vollständigen Trainingsplan der Aufbauphase. Durch den modularen Aufbau des Programmcodes bietet die Arbeit eine Grundlage für die Weiterentwicklung. Das Programm listet die Trainingseinheiten nach der Berechnung und ermöglicht das Erstellen eines PDF-Dokuments.\newline
+Anhand zweier beispielhafter Pläne bestätigt sich die Praktikabilität der Anwendung. Die gemessenen Abweichungen in den einzelnen Bereichen sind vertretbar, denn die Diskrepanz zum Zielwert beträgt durchschnittlich \TODO{Prozent} der Trainingsminuten. Die Anwendung terminiert in angemessener Zeit und deckt die Zielgruppe aus Freizeitsportler:innen und Amateursportler:innen erfolgreich ab.
+\TODO{Überleitung}
+
+\section{Ausblick}
+\label{sec:zusammenfassung:ausblick}
+
+Obwohl die Erstellung eines Trainingsplans erfolgreich umgesetzt wurde, gibt es Möglichkeiten zur Verbesserung und Weiterentwicklung. Auf die verschiedenen Ansätze wird nachfolgend eingegangen.
+
+\subsection{Genauigkeit}
+In dieser Modellierung geben die wichtigen Grundlagen der Trainingswissenschaft die Bedingungen vor. Dennoch deckt das Modell nicht alle Details ab, die Einfluss auf die Qualität eines Trainingsplans haben. Ein exaktes System ist in der Form nicht möglich, da die Trainingswissenschaft selbst auch von ... \TODO{nicht exakt}
+Durch das Aufnehmen weiterer Abhängigkeiten steigt besonders die Individualität des Plans. Mögliche Größen mit Einfluss auf den Trainingsplan sind zu untersuchen. Darunter fallen Einfluss des Alters bzw. des Trainingsalters \cite[181]{EinfuerungTrainingswissenschaft}, des Geschlechts und die Leistungsgruppe \cite[S. 173]{Radsporttraining}. \\
+Das Trainingsalter geht mit zunehmender Zahl immer mehr in die spezifische Ausbildung \\
+Das Geschlecht spielt dann eine Rolle, wenn \\
+Darüber hinaus ist sogar ein vorangestellter Leistungstest (\TODO{Bsp}) vorstellbar mit dessen Ergebnissen die Stärken in verschiedenen Leistungsbereichen erfasst werden können. Defizite in einzelnen Bereichen können --  wie die Wettkampfsdisziplin -- auf die Anteile der Leistungsbereiche Einfluss nehmen. Das hohe Maß an Individualität, das dadurch gewonnen wird, setzt jedoch eine ... voraus. \\
+In der Constraint Programmierung besteht die Möglichkeit Soft Constraints zu definieren. Deren Erfüllung ist optional und bei einer Lösungsinstanz nicht immer gegeben, dann wird die Instanz bei der Optimierung schlechter bewertet. Für die aktuelle Modellierung 
+Soft Constraint einfügen -> vor k123 und k45 Einheiten ein Erholungstag
+Soft Constraints einfügen -> Regeneration/Pause regelmäßiger
+   
+\subsection{Erweiterung} 
+Auf Grundlage dieser Arbeit ist es möglich die Trainingsplanerstellung weiterzuentwickeln. 
+Aus der hierarchischen Struktur folgt die Modularisierung des Programms in Objektklassen.
+Denkbar sind andere Ausdauersportarten und die Ausweitung der Trainingsziele. 
+Des Weiteren ist die Erweiterung der Makrozyklen auf die Vorbereitungsperiode und Übergangsperiode möglich. So wären die Bausteine für einen Jahresplan vorbereitet. \\ \\
+Anderweitige Belastungen, ungeplante Ausfälle
+Wie wirkt sich Training außerhalb des Radsports aus? z.B. Ein Fußballer, der auch Rennrad fährt. \\ \\
+Triathleten und andere Sportarten
+Zusammenschluss der Arbeiten dann zu einem Trainingsplan spezifisch für die Triathlon Vorbereitung möglich? \\ \\
+Trainingsdokumentation
+Erweiterung zur Trainingskontrolle und Trainingsdokumentation
+
+\subsection{Performance}
+eigene Suchstrategie für Laufzeitoptimierung
+Diese Arbeit benötigt für die Erstellung des Plans maximal 30 Sekunden. Dieses Limit wurde der Modellierung hinzugefügt, um ein anwendbares System zu erhalten. Durch die zeitliche Begrenzung des Lösungsprozesses, toleriert die Lösung auch eine Abweichung von den Leistungsbereichen. Die Optimierung wird vorgenommen, es ist jedoch nicht garantiert, dass die vorgegebene Lösung optimal (Distanz = 0) ist. Grund dafür ist die Diskretisierung der Leistungsbereichanteile auf fünf Minuten und die der Trainingseinheiten auf viertelstündliche Vorgaben, aber auch das Limitieren des Suchprozesses auf \TODO{Sekunden} Sekunden. Diese beiden 
+
+Verbessert man die Laufzeit der Lösungssuche durch eine bessere Suchstrategie, verringert das auch die Distanz der Leistungsbereiche zur Zielverteilung. Die Lösung nach \TODO{Timerzeit} Sekunden ist näher am optimalen Wert.
+
+\subsection{Zugänglichkeit}
+Fokus dieser Arbeit war die Modellierung eines optimierten Trainingsplans, weshalb sie als eigenständige Anwendung umgesetzt ist. Um das System der Zielgruppe zur Verfügung zu stellen ist eine Webanwendung zweckmäßiger. 
+Oberfläche/Ausgabe auch maximale Stunden für jeden Wochentag: h/Tag
+Oberfläche/Ausgabe auch Trainingseinheit benennen.
+Durch die Definition einer Schnittstelle mithilfe von JSON-Objekten kapselt sich die Modellierung von der Benutzerinteraktion ab. Nötig ist hierfür das Deployment der Anwendung auf einem JAVA Server. Nachfolgend eine Möglichkeit für eine Schnittstelle.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+{ 
+    "num_months": 3,
+    "competition": "singleday",
+    "sport": "racing bike",
+    "competition_date": 22.02.2022,
+    "sessions": [
+        {
+            date: 01.02.2022,
+            minutes: 60,
+            method: "intervall",
+            sections: [
+                {
+                    length: 45,
+                    range: "GA"
+                },
+                {
+                    length: 5,
+                    range: "EB"
+                },
+                ...
+            ]
+        }
+    ], 
+}
+\end{lstlisting}
+\end{minipage}
+
+
+% \subsection{Einfluss des Wettkampfdatums}
+% Aktuell ist der Starttag immer auf einen Montag festgelegt. Auch wenn 
+% Wie die optimale Leistungsbelastung bestimmen ohne Leistungsmesser? Ist das überhaupt nötig, wenn keine Trainingskontrolle stattfinden soll? Test um Leistungsstand zu ermitteln?
+%Intensität in einer Trainingseinheit variieren? Angaben zur Intensitätsstufe/min -> ein Pool von möglichen Trainings empfehlen -> auch nicht, sondern Trainingsabschnitte nach Trainingsmethoden definieren
+%\item Übertraining verhindern durch Regenerationssteuerung. Es werden keine Messungen/Anpassung im Trainingsverlauf vorgenommen, sodass Übertrainingszustände durch Einplanen von ausreichenden Regenerationsphasen verhindert werden sollen.
+%Leistungsnachlass durch zu lange Pausen/Regenerationsphasen verhindern (weniger als 5 Tage und 10 Tage)
+%\item \TODO{Progression an Trainingsminuten eigentlich ja nicht Belastung dann oder? Also Intensität wäre nötig!}
+%\end{itemize}
+%\begin{itemize}
+%    \item nur x aufeinanderfolgende Tage
+%    \item GA Trainings am Besten als Block \cite[34]{Radsporttraining}
+%\end{itemize}
