@@ -1,13 +1,13 @@
 public enum Method {
-    DAUERLEISTUNG(0),
-    INTERVALL(1),
-    WIEDERHOLUNG(2),
-    PAUSE(3),
-    FAHRTSPIEL(4);
+    Dauerleistung(0),
+    Intervall(1),
+    Wiederholung(2),
+    Pause(3),
+    Fahrtspiel(4);
 
     private final int method;
 
-    private Method(int index) {
+    Method(int index) {
         this.method = index;
     }
 

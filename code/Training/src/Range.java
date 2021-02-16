@@ -8,7 +8,7 @@ public enum Range {
 
     private final int range;
 
-    private Range(int index) {
+    Range(int index) {
         this.range = index;
     }
 

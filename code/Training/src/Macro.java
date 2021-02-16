@@ -5,13 +5,12 @@ import java.util.HashMap;
 import java.util.stream.DoubleStream;
 
 public abstract class Macro {
+    protected final HashMap<Range, Double> ranges = new HashMap<>();
     private final int numMonths;
     private final int maxTrainingMinutes;
     private final int maxTrainingDays;
     private final LocalDate compDay;
-    protected HashMap<Range, Double> ranges = new HashMap<>();
-
-    private ArrayList<Meso> mesos = new ArrayList<>();
+    private final ArrayList<Meso> mesos = new ArrayList<>();
 
     public Macro(int numMonths, int maxMinutes, int maxDays, LocalDate compDay) {
         this.compDay = compDay;
@@ -24,26 +23,35 @@ public abstract class Macro {
     }
 
     private void createMesos() {
-        double steps = 0.1;
-        double minIntensity = 1 - steps*(numMonths -1);
-        for (int i = 0; i < numMonths; i++){
-            LocalDate startDay = compDay.minusDays(28*(numMonths-i));
-            Meso meso = new Meso(minIntensity + i*steps, getPerformanceRanges((int)(i/steps)), maxTrainingMinutes, maxTrainingDays, startDay);
+        int[] macroIntensity = {60, 70, 80, 90, 100};
+        macroIntensity = Arrays.copyOfRange(macroIntensity, macroIntensity.length-numMonths, macroIntensity.length); // crop to plan length
+        int[] mesoIntensity = {80, 90, 100, 70};
+
+        // TODO 5 minute diskretization
+        for (int month = 0; month < numMonths; month++){
+            int iMacro = macroIntensity[month];
+            LocalDate startDay = compDay.minusDays(28L *(numMonths-month));
+            int[] targetWeek = Arrays.stream(mesoIntensity).map(iMeso -> (iMeso * maxTrainingMinutes * iMacro)/10000).toArray();
+            int[] targetRanges = new int[6];
+            int trainingMinutes = Arrays.stream(targetWeek).sum();
+            for(Range r : Range.values()){
+                targetRanges[r.index()] = (int) (getPerformanceRanges(month).get(r) * trainingMinutes);
+            }
+
+            Meso meso = new Meso(targetWeek, targetRanges, maxTrainingDays, startDay);
             mesos.add(meso);
         }
     }
 
     public void solvePlan() {
-        mesos.parallelStream().forEach((meso) -> {
-            meso.solveMonthOptimized();
-        });
+        mesos.parallelStream().forEach(Meso::solveMonthOptimized);
     }
 
     abstract void setPerformanceRanges();
     abstract String getName();
 
     public void validateRanges(){
-        double sum = ranges.values().stream().flatMapToDouble(e -> DoubleStream.of(e)).sum();
+        double sum = ranges.values().stream().flatMapToDouble(DoubleStream::of).sum();
         if (sum != 1.0) {
             throw new ArithmeticException("Distribution on ranges unequal to 100 percent");
         }
@@ -58,7 +66,10 @@ public abstract class Macro {
     }
 
     HashMap<Range, Double> getPerformanceRanges(int month){
-        return ranges;
+        HashMap<Range, Double> copy = (HashMap<Range, Double>) ranges.clone();
+        copy.replace(Range.GA,  (ranges.get(Range.GA)*100-month)/100);
+        copy.replace(Range.SB,  (ranges.get(Range.SB)*100+month)/100);
+        return copy;
     }
 
     public int getNumMonths() {
@@ -83,10 +94,6 @@ public abstract class Macro {
 
     public ArrayList<Meso> getMesos() {
         return mesos;
-    }
-
-    public String getTargets(){
-        return mesos.toString();
     }
 
     @Override

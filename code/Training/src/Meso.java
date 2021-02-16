@@ -6,17 +6,15 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.HashMap;
 
 public class Meso {
-    private final HashMap<Integer, Integer> targetMinutes;
-    protected int[] maxWeekMinutes;
-    protected int maxDays;
-    protected int maxMinutesDay;
+    private final int maxTrainingDays;
+    private final int[] targetRanges;
+    private final int[] targetWeek;
+    private final int maxMinutesDay;
     private Model model;
     private Solution plan;
-    private Solver solver;
 
     private IntVar[] minutes;
     private IntVar[] methods;
@@ -25,21 +23,17 @@ public class Meso {
     private IntVar[] rangeSums;
     private IntVar[] rangeDistances;
     private IntVar overallDistance;
-    private Double[] mesoIntensity;
-    private LocalDate startDay;
 
+    private final LocalDate startDay;
 
-    public Meso(double intensity, HashMap<Range, Double> targetPercent, int maxMinutesWeek, int weeklyDays, LocalDate startDay) {
-        this.mesoIntensity = new Double[]{0.8, 0.9, 1.0, 0.6};
-        this.maxWeekMinutes = Arrays.stream(mesoIntensity).mapToInt(i -> (int) (i * maxMinutesWeek * intensity)).toArray();
-        this.targetMinutes = new HashMap<>();
-        targetPercent.forEach((k, v) -> targetMinutes.put(k.index(), (int) (v * Arrays.stream(maxWeekMinutes).sum())));
-        this.maxDays = weeklyDays;
-        this.maxMinutesDay = 360;
+    public Meso(int[] targetWeek, int[] targetRanges, int maxTrainingDays, LocalDate startDay) {
+        this.maxTrainingDays = maxTrainingDays;
+        this.targetRanges = targetRanges;
+        this.targetWeek = targetWeek;
         this.startDay = startDay;
+        this.maxMinutesDay = 360;
 
-        this.model = new Model("training  " + intensity);
-
+        this.model = new Model("training  " + startDay);
         initializeModel();
         defineConstraints();
     }
@@ -48,11 +42,11 @@ public class Meso {
         this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1, false);
         this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay, true);
         this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay, false);
-        this.names = model.intVarArray("name", 28, 0, 11, false);
+        this.names = model.intVarArray("names", 28, 0, SessionName.values().length - 1, false);
 
-        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxDays * maxMinutesDay * 4, true);
+        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxTrainingDays * maxMinutesDay * 4, true);
         this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120, false);
-        this.overallDistance = model.intVar("distance", 0, 60 * Range.values().length, true);
+        this.overallDistance = model.intVar("distance", 0, 120 * Range.values().length, true);
     }
 
     public void defineConstraints() {
@@ -61,17 +55,17 @@ public class Meso {
             IntVar var = model.intVar("counter_" + method.toString(), 2, 20);
             model.count(method.index(), methods, var).post();
         }
+
         // constraints on weeks
         for (int week = 0; week < 4; week++) {
             int startDay = week * 7;
             IntVar[] weekVariable = new IntVar[]{minutes[startDay], minutes[startDay + 1], minutes[startDay + 2], minutes[startDay + 3], minutes[startDay + 4], minutes[startDay + 5], minutes[startDay + 6]};
 
             // dont train more than x minutes in a week
-            model.sum(weekVariable, "<=", maxWeekMinutes[week]).post();
-            //model.sum(weekVariable, "<", maxWeekMinutes[week]-30).post();
+            model.sum(weekVariable, "<=", targetWeek[week]).post();
 
             // train x days in a week
-            model.count(0, weekVariable, model.intVar(7 - maxDays, 8-maxDays)).post();
+            model.count(0, weekVariable, model.intVar(7 - maxTrainingDays, 8 - maxTrainingDays)).post();
         }
 
         // constraint on days
@@ -85,171 +79,162 @@ public class Meso {
                 //ranges 5 minute diskretization
                 model.mod(ranges[day][range], 15, 0).post();
             }
-
             // method is pause exactly when 0 training minutes
             model.ifOnlyIf(
                     model.arithm(minutes[day], "=", 0),
-                    model.arithm(methods[day], "=", Method.PAUSE.index())
+                    model.arithm(methods[day], "=", Method.Pause.index())
             );
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.PAUSE.index()),
+                    model.arithm(methods[day], "=", Method.Pause.index()),
                     model.arithm(names[day], "=", SessionName.Pause.index())
             );
 
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.INTERVALL.index()),
+                    model.arithm(methods[day], "=", Method.Intervall.index()),
                     model.or(
                             //Bergausdauer
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Intensive_Kraftausdauer.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 90)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", model.intVar(15, 120)),
-                                    model.arithm(names[day], "=", SessionName.Intensive_Kraftausdauer.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", model.intVar(15, 120))
                             ),
                             //Schnelligkeitsausdauer
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Schnelligkeitsausdauer.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(60, 180)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 45)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Schnelligkeitsausdauer.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             )
                     )
             );
+
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.FAHRTSPIEL.index()),
+                    model.arithm(methods[day], "=", Method.Fahrtspiel.index()),
                     model.or(
                             // Extensives Fahrtspiel
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Extensives_Fahrtspiel.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 240)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(30, 240)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Extensives_Fahrtspiel.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             ),
                             //Intensives Fahrtspiel
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Intensives_Fahrtspiel.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 180)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Intensives_Fahrtspiel.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             )
                     )
             );
 
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.DAUERLEISTUNG.index()),
+                    model.arithm(methods[day], "=", Method.Dauerleistung.index()),
                     model.or(
                             //1 Rekom
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Kompensationsfahrt.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(30, 180)),
                                     model.arithm(ranges[day][Range.GA.index()], "=", 0),
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Kompensationsfahrt.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             ),
                             // 2 und 3 Extensive Fahrt und Fettstoffwechsel
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Extensive_Fahrt.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(60, 360)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Extensive_Fahrt.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             ),
                             // 5 Intensive Fahrt
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Intensive_Fahrt.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.GA.index()], "=", 60),
                                     model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Intensive_Fahrt.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             ),
                             // 8 Extensive Kraftausdauer
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Extensive_Kraftfahrt.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 60)),
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.K123.index()], "=", model.intVar(30, 150)),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Extensive_Kraftfahrt.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             ),
                             // 13 Einzelfahrt
                             model.and(
+                                    model.arithm(names[day], "=", SessionName.Einzelzeitfahrt.index()),
                                     model.arithm(ranges[day][Range.KB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.GA.index()], "=", 60),
                                     model.arithm(ranges[day][Range.EB.index()], "=", 0),
                                     model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(30, 60)),
                                     model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                                    model.arithm(names[day], "=", SessionName.Einzelzeitfahrt.index())
+                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
                             )
                     )
             );
 
             model.ifThen(
-                    model.arithm(methods[day], "=", Method.WIEDERHOLUNG.index()),
+                    model.arithm(methods[day], "=", Method.Wiederholung.index()),
                     // 12 Sprinttraining
                     model.and(
+                            model.arithm(names[day], "=", SessionName.Sprinttraining.index()),
                             model.arithm(ranges[day][Range.KB.index()], "=", 0),
                             model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 60)),
                             model.arithm(ranges[day][Range.EB.index()], "=", 0),
                             model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 100)),
                             model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                            model.arithm(ranges[day][Range.K45.index()], "=", 0),
-                            model.arithm(names[day], "=", SessionName.Sprinttraining.index())
+                            model.arithm(ranges[day][Range.K45.index()], "=", 0)
                     )
             );
         }
-
         // constaint on ranges columns
         IntVar[][] transposed = ArrayUtils.transpose(ranges);
         for (int i = 0; i < transposed.length; ++i) {
             model.sum(transposed[i], "=", rangeSums[i]).post();
-            model.arithm(rangeSums[i].dist(targetMinutes.get(i)).intVar(), "=", rangeDistances[i]).post();
+            model.arithm(rangeSums[i].dist(targetRanges[i]).intVar(), "=", rangeDistances[i]).post();
         }
-
         // Minimize this Variable
         model.sum(rangeDistances, "=", overallDistance).post();
-
     }
 
     public void solveMonthOptimized() {
-        solver = model.getSolver();
+        Solver solver = model.getSolver();
         plan = new Solution(model);
-
-        solver.plugMonitor((IMonitorSolution) () -> {
-                    plan.record();
-                }
-        );
-
         solver.limitTime("30s");
+        solver.plugMonitor((IMonitorSolution) () -> plan.record());
         solver.showShortStatistics();
         solver.findOptimalSolution(overallDistance, false);
     }
-
 
     public Session[] getSessionsMonth() {
         if (plan != null) {
             Session[] sessions = new Session[28];
             for (int i = 0; i < 28; i++) {
-                HashMap dis = new HashMap();
+                HashMap<Range, Integer> dis = new HashMap<>();
                 dis.put(Range.KB, plan.getIntVal(ranges[i][0]));
                 dis.put(Range.GA, plan.getIntVal(ranges[i][1]));
                 dis.put(Range.EB, plan.getIntVal(ranges[i][2]));
@@ -269,13 +254,13 @@ public class Meso {
             throw new NullPointerException();
         }
     }
-    public String getTargetMinutes(){
-        int sum = targetMinutes.values().stream().reduce(0, Integer::sum);
-        return targetMinutes + " summe = " + sum;
+
+    public int[] getTargetWeek() {
+        return targetWeek;
     }
 
-    public int getDistance() {
-        return overallDistance.getValue();
+    public int[] getTargetRanges() {
+        return targetRanges;
     }
 
     @Override

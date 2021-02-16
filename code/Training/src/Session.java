@@ -1,5 +1,4 @@
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.HashMap;
 
 public class Session {
@@ -31,10 +30,6 @@ public class Session {
 
     public HashMap<Range, Integer> getDistribution() {
         return distribution;
-    }
-
-    public String prettyString(){
-        return  "Session mit Beschreibung";
     }
 
     public LocalDate getDay() {

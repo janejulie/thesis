@@ -10,12 +10,11 @@ public enum SessionName {
     Intensive_Kraftausdauer(8),
     Schnelligkeitsausdauer(9),
     Sprinttraining(10),
-
     Pause(11);
 
     private final int name;
 
-    private SessionName(int index) {
+    SessionName(int index) {
         this.name = index;
     }
 
