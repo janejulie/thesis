@@ -1,8 +1,8 @@
 public enum Method {
-    Dauerleistung(0),
-    Intervall(1),
-    Wiederholung(2),
-    Pause(3),
+    Pause(0),
+    Dauerleistung(1),
+    Intervall(2),
+    Wiederholung(3),
     Fahrtspiel(4);
 
     private final int method;

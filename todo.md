@@ -1,0 +1,22 @@
+- [ ] Leistungsbereiche durch Belastungsbereiche ersetzen
+- [ ] Aufbau, Wettkampf und Übergangs -> -periode statt -phase
+- [ ] Überall gegendert?
+- [ ] aerob anaerob definitionen
+- [ ] Zahlen Diagramm Wettkämpfe
+- [ ] Grundlagenausdauer mit Nähe zum Wettkampf
+- [ ] Fahrtspiel flexibler gestalten, hilft auch dem Solver
+- [ ] Eventuell näher auf die Namen der Trainingseinheiten eingehen -> Mehr als nur die Tabellen
+- [ ] Implementierung oder Modellierung: gebundene oder ungebundene Variable?
+- [ ] Constraintarten noch mehr Beschreiben? 
+- [ ] Glossar hinzufügen?
+- [ ] Wieso nicht Trainingsanteile in % sondern Zeitspanne
+- [ ] Überschrift 1. Absatz Modellierung / Prozess / Modellgenese
+- [ ] Modellierung/Konstanten: Abbildung erstellen mit Maximale Minuten und Belastungsbereiche? 
+- [ ] variablen namen kursiv?
+- [ ] Formel Variation Trainingsmethoden und 2x  wöchentliche überprüfen
+- [ ] refs und hyperrefs überprüfen
+- [ ] Tabellenspalten mit Rand?
+- [ ] Farben der Abbildung in der Modellierung
+- [ ] Benennung choco solver
+- [ ] komplettes UML Diagramm in den Anhang
+

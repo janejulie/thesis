@@ -13,7 +13,7 @@ public class Session {
         this.method = method;
         this.distribution = distribution;
         this.day = day;
-        this.type = SessionName.values()[type].name().replace("_", " ");
+        this.type = SessionPool.values()[type].name().replace("_", " ");
     }
 
     public int getMinutes() {

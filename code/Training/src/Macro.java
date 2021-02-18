@@ -27,17 +27,17 @@ public abstract class Macro {
         macroIntensity = Arrays.copyOfRange(macroIntensity, macroIntensity.length-numMonths, macroIntensity.length); // crop to plan length
         int[] mesoIntensity = {80, 90, 100, 70};
 
-        // TODO 5 minute diskretization
         for (int month = 0; month < numMonths; month++){
             int iMacro = macroIntensity[month];
             LocalDate startDay = compDay.minusDays(28L *(numMonths-month));
-            int[] targetWeek = Arrays.stream(mesoIntensity).map(iMeso -> (iMeso * maxTrainingMinutes * iMacro)/10000).toArray();
+            int[] targetWeek = Arrays.stream(mesoIntensity).map(iMeso -> (iMeso * maxTrainingMinutes * iMacro)/10000).toArray(); //periodization
+            targetWeek = Arrays.stream(targetWeek).map(week -> (15*(Math.round(week/15)))).toArray(); //round to 5 step precision
             int[] targetRanges = new int[6];
             int trainingMinutes = Arrays.stream(targetWeek).sum();
             for(Range r : Range.values()){
                 targetRanges[r.index()] = (int) (getPerformanceRanges(month).get(r) * trainingMinutes);
             }
-
+            targetRanges = Arrays.stream(targetRanges).map(range -> (5*(Math.round(range/5)))).toArray(); //round to 5 step precision
             Meso meso = new Meso(targetWeek, targetRanges, maxTrainingDays, startDay);
             mesos.add(meso);
         }

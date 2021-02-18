@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -35,7 +34,7 @@ public class Main {
         JComboBox<Integer> iMonths = new JComboBox<>(new Integer[]{3, 4, 5});
         JComboBox<Integer> iWeeklyDays = new JComboBox<>(new Integer[]{2, 3, 4, 5, 6});
         iWeeklyDays.setSelectedItem(6);
-        JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(5, 20).boxed().toArray(Integer[]::new));
+        JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(4, 15).boxed().toArray(Integer[]::new));
         iWeeklyHours.setSelectedItem(15);
         JComboBox<String> iCompetition = new JComboBox<>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
         JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
@@ -183,8 +182,8 @@ public class Main {
         }
         plan.solvePlan();
         if (plan != null){
-            monitor.setText(plan.toString());
             table.createTableContent(plan.getSessions());
+            table.setRowSelectionInterval(0, 0);
         } else {
             throw new Exception("No Solution found");
         }

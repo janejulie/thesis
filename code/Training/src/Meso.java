@@ -1,11 +1,13 @@
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.search.loop.monitors.IMonitorSolution;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Meso {
@@ -33,16 +35,16 @@ public class Meso {
         this.startDay = startDay;
         this.maxMinutesDay = 360;
 
-        this.model = new Model("training  " + startDay);
+        this.model = new Model("end on " + startDay);
         initializeModel();
         defineConstraints();
     }
 
     private void initializeModel() {
-        this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1, false);
-        this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay, true);
         this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay, false);
-        this.names = model.intVarArray("names", 28, 0, SessionName.values().length - 1, false);
+        this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1, false);
+        this.names = model.intVarArray("names", 28, 0, SessionPool.values().length - 1, false);
+        this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay, false);
 
         this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxTrainingDays * maxMinutesDay * 4, true);
         this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120, false);
@@ -55,6 +57,35 @@ public class Meso {
             IntVar var = model.intVar("counter_" + method.toString(), 2, 20);
             model.count(method.index(), methods, var).post();
         }
+        // constraint on days
+        for (int day = 0; day < 28; day++) {
+            addTrainingsessionPool(day, Method.Pause, SessionPool.getPause());
+            addTrainingsessionPool(day, Method.Fahrtspiel, SessionPool.getFS());
+            addTrainingsessionPool(day, Method.Dauerleistung, SessionPool.getDL());
+            addTrainingsessionPool(day, Method.Intervall, SessionPool.getIV());
+            addTrainingsessionPool(day, Method.Wiederholung, SessionPool.getWH());
+
+            for (int range = 0; range < Range.values().length; range++) {
+                //ranges in 5 minute steps
+                model.mod(ranges[day][range], 15, 0).post();
+            }
+
+            // trainings always in 15 minute steps
+            model.mod(minutes[day], 15, 0).post();
+
+            // minutes equal sum of minutes in ranges
+            model.sum(ranges[day], "=", minutes[day]).post();
+
+            // method is pause exactly when 0 training minutes
+            model.ifOnlyIf(
+                    model.arithm(minutes[day], "=", 0),
+                    model.arithm(methods[day], "=", Method.Pause.index())
+            );
+            model.ifOnlyIf(
+                    model.arithm(minutes[day], "=", 0),
+                    model.arithm(names[day], "=", SessionPool.Pause.index())
+            );
+        }
 
         // constraints on weeks
         for (int week = 0; week < 4; week++) {
@@ -65,152 +96,9 @@ public class Meso {
             model.sum(weekVariable, "<=", targetWeek[week]).post();
 
             // train x days in a week
-            model.count(0, weekVariable, model.intVar(7 - maxTrainingDays, 8 - maxTrainingDays)).post();
+            model.count(0, weekVariable, model.intVar(7 - maxTrainingDays)).post();
         }
 
-        // constraint on days
-        for (int day = 0; day < 28; day++) {
-            // minutes equal sum of minutes in ranges
-            model.sum(ranges[day], "=", minutes[day]).post();
-
-            // trainings always in 15 minute steps
-            model.mod(minutes[day], 15, 0).post();
-            for (int range = 0; range < Range.values().length; range++) {
-                //ranges 5 minute diskretization
-                model.mod(ranges[day][range], 15, 0).post();
-            }
-            // method is pause exactly when 0 training minutes
-            model.ifOnlyIf(
-                    model.arithm(minutes[day], "=", 0),
-                    model.arithm(methods[day], "=", Method.Pause.index())
-            );
-            model.ifThen(
-                    model.arithm(methods[day], "=", Method.Pause.index()),
-                    model.arithm(names[day], "=", SessionName.Pause.index())
-            );
-
-            model.ifThen(
-                    model.arithm(methods[day], "=", Method.Intervall.index()),
-                    model.or(
-                            //Bergausdauer
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Intensive_Kraftausdauer.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 90)),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", model.intVar(15, 120))
-                            ),
-                            //Schnelligkeitsausdauer
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Schnelligkeitsausdauer.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(60, 180)),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 45)),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            )
-                    )
-            );
-
-            model.ifThen(
-                    model.arithm(methods[day], "=", Method.Fahrtspiel.index()),
-                    model.or(
-                            // Extensives Fahrtspiel
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Extensives_Fahrtspiel.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 240)),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(30, 240)),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            ),
-                            //Intensives Fahrtspiel
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Intensives_Fahrtspiel.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(0, 30)),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 180)),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 120)),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            )
-                    )
-            );
-
-            model.ifThen(
-                    model.arithm(methods[day], "=", Method.Dauerleistung.index()),
-                    model.or(
-                            //1 Rekom
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Kompensationsfahrt.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", model.intVar(30, 180)),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            ),
-                            // 2 und 3 Extensive Fahrt und Fettstoffwechsel
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Extensive_Fahrt.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(60, 360)),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            ),
-                            // 5 Intensive Fahrt
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Intensive_Fahrt.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", 60),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", model.intVar(15, 120)),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            ),
-                            // 8 Extensive Kraftausdauer
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Extensive_Kraftfahrt.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 60)),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", model.intVar(30, 150)),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            ),
-                            // 13 Einzelfahrt
-                            model.and(
-                                    model.arithm(names[day], "=", SessionName.Einzelzeitfahrt.index()),
-                                    model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.GA.index()], "=", 60),
-                                    model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(30, 60)),
-                                    model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                                    model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                            )
-                    )
-            );
-
-            model.ifThen(
-                    model.arithm(methods[day], "=", Method.Wiederholung.index()),
-                    // 12 Sprinttraining
-                    model.and(
-                            model.arithm(names[day], "=", SessionName.Sprinttraining.index()),
-                            model.arithm(ranges[day][Range.KB.index()], "=", 0),
-                            model.arithm(ranges[day][Range.GA.index()], "=", model.intVar(30, 60)),
-                            model.arithm(ranges[day][Range.EB.index()], "=", 0),
-                            model.arithm(ranges[day][Range.SB.index()], "=", model.intVar(15, 100)),
-                            model.arithm(ranges[day][Range.K123.index()], "=", 0),
-                            model.arithm(ranges[day][Range.K45.index()], "=", 0)
-                    )
-            );
-        }
         // constaint on ranges columns
         IntVar[][] transposed = ArrayUtils.transpose(ranges);
         for (int i = 0; i < transposed.length; ++i) {
@@ -219,6 +107,30 @@ public class Meso {
         }
         // Minimize this Variable
         model.sum(rangeDistances, "=", overallDistance).post();
+    }
+
+    private void addTrainingsessionPool(int day, Method method, SessionPool[] sessionPool) {
+        ArrayList<Constraint> trainingPool = new ArrayList<>();
+        ArrayList<Constraint> limitConstraint = new ArrayList<>();
+        for (SessionPool session: sessionPool) {
+            limitConstraint.clear();
+            limitConstraint.add(model.arithm(names[day], "=", session.index()));  //identifier
+
+            int[][] limits = session.getDomains();
+            for(int limit = 0; limit<limits.length; limit++){
+                limitConstraint.add(model.arithm(ranges[day][limit], "=", model.intVar(limits[limit][0], limits[limit][1])));
+            }
+            Constraint[] arrayAND= new Constraint[limitConstraint.size()];
+            limitConstraint.toArray(arrayAND);
+            trainingPool.add(model.and(arrayAND));
+        }
+
+        Constraint[] arrayOR= new Constraint[trainingPool.size()];
+
+        model.ifThen(
+                model.arithm(methods[day], "=", method.index()),
+                model.or(trainingPool.toArray(arrayOR))
+        );
     }
 
     public void solveMonthOptimized() {
@@ -244,10 +156,9 @@ public class Meso {
 
                 int minute = plan.getIntVal(minutes[i]);
                 Method meth = Method.values()[plan.getIntVal(methods[i])];
-                int name = names[i].getValue();
+                int name = plan.getIntVal(names[i]);
                 LocalDate day = startDay.plusDays(i);
                 sessions[i] = new Session(minute, meth, dis, day, name);
-
             }
             return sessions;
         } else {
