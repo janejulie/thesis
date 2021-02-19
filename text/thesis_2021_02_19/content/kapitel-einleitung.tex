@@ -1,0 +1,41 @@
+\chapter{Einleitung}
+\label{sec:einleitung}
+\section{Motivation}
+Im Amateursport sowie im Freizeitsport steht nur in seltenen Fällen eine persönliche Trainingsbetreuung zur Verfügung. Dennoch ist auch in diesem Bereich die Effektivität des Trainings abhängig von der Trainingsplanung. Neben der Optimierung der physiologischen Leistung bringt die Planung auch psychologische Vorteile mit sich \cite{ImplementationIntentions}. Die Vorgabe der Trainingszeiten kann zu einer höheren Verpflichtung und gesteigerten Motivation führen, sodass die geplanten Einheiten mit höherer Wahrscheinlichkeit umgesetzt werden.
+Greift man auf vorgefertigte Trainingspläne zurück, büßt die Individualität des Trainingsplans ein. Die Qualität vorgefertigter Trainingspläne variiert stark je nach Quelle und ist ohne trainingswissenschaftliche Kenntnisse nicht zu beurteilen. Fehlen diese Kenntnisse, ist auch die eigene Anfertigung eines Trainingsplans zeitaufwändig. 
+So entsteht ein Bedarf nach einer Modellierung auf Grundlage der radsportspezifischen Trainingswissenschaft, die die Erstellung eines individuellen Trainingsplans für Radsportlerinnen und Radsportler übernimmt. Personalisiert wird nach Trainingsziel und Einschränkungen im Trainingsumfang. 
+Bereits bestehende Systeme sind nicht speziell für den Radsport entwickelt, haben keine individuelle Anpassung der Trainingseinheiten oder sind Teil von kostenintensiven Programmen.
+
+\section{Problemstellung}
+\label{sec:einleitung:problem}
+Ziel der Arbeit ist die Entwicklung eines Programms zur automatisierten Erstellung von individuellen Trainingsplänen für Wettkampfdisziplinen im Radsport.
+Das System modelliert auf Grundlage der allgemeinen und radsportspezifischen Trainingswissenschaften die Gestaltung der Trainingseinheiten einer drei- bis fünfmonatigen Aufbauperiode, die zyklisiert und periodisiert ist. Es ist möglich die Länge des Plans individuell zu wählen. 
+Typischerweise dient die Aufbauperiode zur Vorbereitung auf einen Wettkampf. Die physiologische Leistung wird vorwiegend durch die Abstimmung der Trainingseinheiten auf das Trainingsziel gesteigert. Im Straßenradsport betrifft das Trainingsziel immer den Bereich der Langzeitausdauer. Aus den unterschiedlichen Wettkampfarten kann dennoch eine Gewichtung der Belastungsbereiche geschlussfolgert werden. Entscheidend ist das Traininigsziel also auch für ambitionierte Freizeitsportler, die anschließend keinen Wettkampf absolvieren.\newline
+Einen weiteren Einfluss auf die Trainingseinheiten hat der maximal verfügbare wöchentliche Trainingsumfang. Die verfügbaren Trainingstage und -stunden sind optimal zu nutzen, ohne sie zu überschreiten. 
+Trotz der vielschichtigen Leistungsfaktoren eines erfolgreichen Wettkampfs, behandelt der Plan ausschließlich die physische Leistungssteigerung. Andere Einflüsse auf die Leistung wie psychisches Belastungstraining, taktische Ausbildung, Ausrüstung oder Fahrbeschaffenheit \cite[13-15]{Radsporttraining} werden nicht im Rahmen dieser Arbeit behandelt.
+
+\section{Zielgruppe}
+Diese Modellierung richtet sich in erster Linie an den Amateursport und ambitionierten Freizeitsport, denn professionellen Sportler:innen steht im Normalfall Betreuungspersonal zur Verfügung. Bei der Fülle an Wettkämpfen in einer Saison wird in der Regel einem Wettkampf keine gesonderte Aufbauperiode gewidmet. Dieses System ist an Sportler:innen gerichtet, die ohne externe Betreuung trainieren. Für ambitionierte Hobbyfahrer, die im Anschluss an den Trainingsplan nicht an einem Wettkampf teilnehmen, kann dieser Plan für die Planung der Radsaison dienen. Dabei entspricht die Wettkampfdisziplin dem Trainingsziel der Sportler:innen.
+
+\section{Überblick}
+\label{sec:intro:ueberblick}
+\textbf{\fullref{sec:verwandt}} \\[0.2em]
+Ein Überblick über bereits bestehende Systeme und deren Eigenschaften. Verglichen wird nach den Kriterien Personalisierungsgrad, Komplexität und Funktionsumfang sowie den anfallenden Kosten für Benutzer:innen.
+
+\textbf{\fullref{sec:grundlagen:rad}} \\[0.2em]
+\hyperref[sec:grundlagen:rad]{Kapitel \ref{sec:grundlagen:rad}} befasst sich mit den Grundlagen der Sportwissenschaften sowohl im allgemeinen Bereich als auch den radsportspezifischen Anforderungen. Trainingseinheiten werden im Kontext der Periodisierung und Zyklisierung unterschiedliche Trainingsziele erfüllen und so verschiedene Belastungsbereiche abdecken. Hier werden auch die verschiedenen Trainingsmethoden einer strukturierten Trainingseinheit vorgestellt.
+
+\textbf{\fullref{sec:grundlagen:info}} \\[0.2em]
+Die Modellierung erfolgt nach dem Programmierparadigma Constraint Programmierung. Dieses Verfahren verwendet Variablen und Constraints zur Beschreibung der Problemstellung. Ein Solver berechnet bei Existenz einer Lösung die Lösungsinstanz. 
+
+\textbf{\fullref{sec:modellierung}} \\[0.2em]
+Mit Hilfe der Grundlagen der Trainingswissenschaft wird der Trainingsplan modelliert. Die Anforderungen werden im Schema der Constraint Programmierung beschrieben. Zu Grunde liegt dabei ein mathematisches Modell, das die benötigten Variablen und Constraints definiert.
+
+\textbf{\fullref{sec:implementierung}} \\[0.2em]
+Vor der Implementierung des Modells mit Java, wird das System konzipiert. Anhand von UML-Diagrammen visualisiert dieses Kapitel die Struktur der Implementierung. Vorrangig geht es um die Umsetzung der Modellierung und deren Einbindung in das objektorientierte Programm. Zusätzlich entsteht die grafische Schnittstelle für die Bedienung. Das Modell wird mit der Java-Bibliothek choko-solver implementiert. Die Umsetzung ist als eigenständige Anwendung realisiert. 
+
+\textbf{\fullref{sec:evaluation}} \\[0.2em]
+Evaluiert wird ein dreimonatiger Trainingsplan, der aus der Anwendung erstellt worden ist. An dessen mittleren Umfang soll die Individualität der generierbaren Trainingspläne diskutiert werden. Thema ist auch die Performance des Lösungsprozesses.
+
+\textbf{\fullref{sec:zusammenfassung}} \\[0.2em]
+Abschließend wird ein Überblick von den Ergebnissen der Arbeit gegeben. Genauso beinhaltet dieses Kapitel den Ausblick über die möglichen Erweiterungen.

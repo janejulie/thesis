@@ -3,7 +3,16 @@ import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.search.loop.monitors.IMonitorSolution;
+import org.chocosolver.solver.search.strategy.Search;
+import org.chocosolver.solver.search.strategy.selectors.values.IntDomainBest;
+import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMax;
+import org.chocosolver.solver.search.strategy.selectors.values.IntDomainMin;
+import org.chocosolver.solver.search.strategy.selectors.variables.FirstFail;
+import org.chocosolver.solver.search.strategy.selectors.variables.InputOrder;
+import org.chocosolver.solver.search.strategy.selectors.variables.MaxRegret;
+import org.chocosolver.solver.search.strategy.selectors.variables.Smallest;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.tools.ArrayUtils;
 
 import java.time.LocalDate;
@@ -33,7 +42,7 @@ public class Meso {
         this.targetRanges = targetRanges;
         this.targetWeek = targetWeek;
         this.startDay = startDay;
-        this.maxMinutesDay = 360;
+        this.maxMinutesDay = 300;
 
         this.model = new Model("end on " + startDay);
         initializeModel();
@@ -41,35 +50,28 @@ public class Meso {
     }
 
     private void initializeModel() {
-        this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay, false);
-        this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1, false);
-        this.names = model.intVarArray("names", 28, 0, SessionPool.values().length - 1, false);
-        this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay, false);
+        this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1);
+        this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay);
+        this.names = model.intVarArray("names", 28, 0, SessionPool.values().length - 1);
+        this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay);
 
-        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxTrainingDays * maxMinutesDay * 4, true);
-        this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120, false);
-        this.overallDistance = model.intVar("distance", 0, 120 * Range.values().length, true);
+        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxTrainingDays * maxMinutesDay * 4);
+        this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 60);
+        this.overallDistance = model.intVar("distance", 0, 60 * Range.values().length);
     }
 
     public void defineConstraints() {
-        // variation of methods min 2 of every method
-        for (Method method : Method.values()) {
-            IntVar var = model.intVar("counter_" + method.toString(), 2, 20);
-            model.count(method.index(), methods, var).post();
-        }
         // constraint on days
         for (int day = 0; day < 28; day++) {
             addTrainingsessionPool(day, Method.Pause, SessionPool.getPause());
             addTrainingsessionPool(day, Method.Fahrtspiel, SessionPool.getFS());
             addTrainingsessionPool(day, Method.Dauerleistung, SessionPool.getDL());
             addTrainingsessionPool(day, Method.Intervall, SessionPool.getIV());
-            addTrainingsessionPool(day, Method.Wiederholung, SessionPool.getWH());
 
             for (int range = 0; range < Range.values().length; range++) {
                 //ranges in 5 minute steps
-                model.mod(ranges[day][range], 15, 0).post();
+                model.mod(ranges[day][range], 5, 0).post();
             }
-
             // trainings always in 15 minute steps
             model.mod(minutes[day], 15, 0).post();
 
@@ -136,7 +138,11 @@ public class Meso {
     public void solveMonthOptimized() {
         Solver solver = model.getSolver();
         plan = new Solution(model);
-        solver.limitTime("30s");
+        IntVar[] vars = model.retrieveIntVars(false);
+/*        solver.setSearch(
+                Search.inputOrderUBSearch(vars)
+        );*/
+        solver.limitTime("10s");
         solver.plugMonitor((IMonitorSolution) () -> plan.record());
         solver.showShortStatistics();
         solver.findOptimalSolution(overallDistance, false);
@@ -176,7 +182,7 @@ public class Meso {
 
     @Override
     public String toString() {
-        return this.getClass() + "distance = " + overallDistance.getValue();
+        return "distance = " + plan.getIntVal(overallDistance);
     }
 }
 
