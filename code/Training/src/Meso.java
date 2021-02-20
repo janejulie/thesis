@@ -140,7 +140,7 @@ public class Meso {
     public void solveMonthOptimized() {
         Solver solver = model.getSolver();
         plan = new Solution(model);
-        solver.limitTime("20s");
+        solver.limitTime("15s");
         solver.plugMonitor((IMonitorSolution) () -> plan.record());
         solver.showShortStatistics();
         solver.findOptimalSolution(overallDistance, false);
@@ -176,6 +176,10 @@ public class Meso {
 
     public int[] getTargetRanges() {
         return targetRanges;
+    }
+
+    public int getDistance(){
+        return plan.getIntVal(overallDistance);
     }
 
     @Override

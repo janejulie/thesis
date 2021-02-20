@@ -2,6 +2,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,11 +19,27 @@ class MainTest {
 
     @AfterEach
     void tearDown() {
+        main.getPlan().getMesos().forEach(i -> {
+                String msg = "";
+                int distance = i.getDistance();
+                int summe = Arrays.stream(i.getTargetWeek()).sum();
+                msg += "Distance: " + distance + "\t";
+                msg += "Summe: "    + summe + "\t";
+                msg += "Abweichung " +  (double) distance*100/summe + "%";
+                System.out.println(msg);
+            }
+        );
+        main.createPDF();
     }
 
     @Test
     void planAmateurSingleday() throws Exception {
         main.createPlan(3, "Straßeneinzel", 12, 6, compDate);
+        assertNotNull(main.plan);
+    }
+    @Test
+    void planSingleday() throws Exception {
+        main.createPlan(3, "Straßeneinzel", 8, 4, compDate);
         assertNotNull(main.plan);
     }
     @Test
@@ -36,6 +53,11 @@ class MainTest {
         assertNotNull(main.plan);
     }
     @Test
+    void planMountain() throws Exception {
+        main.createPlan(3, "Bergfahrt", 8, 4, compDate);
+        assertNotNull(main.plan);
+    }
+    @Test
     void planHobbyMountain() throws Exception {
         main.createPlan(3, "Bergfahrt", 4, 2, compDate);
         assertNotNull(main.plan);
@@ -46,19 +68,13 @@ class MainTest {
         assertNotNull(main.plan);
     }
     @Test
+    void planTimetrial() throws Exception {
+        main.createPlan(3, "Rundstrecke", 8, 4, compDate);
+        assertNotNull(main.plan);
+    }
+    @Test
     void planHobbyTimetrial() throws Exception {
         main.createPlan(3, "Rundstrecke", 4, 2, compDate);
         assertNotNull(main.plan);
     }
-
-    @Test
-    void createPDFs() throws Exception {
-        main.createPlan(3, "Straßeneinzel", 8, 4, compDate);
-        main.createPDF();
-        main.createPlan(4, "Rundstrecke", 8, 2, compDate);
-        main.createPDF();
-        main.createPlan(5, "Bergfahrt", 8, 4, compDate);
-        main.createPDF();
-    }
-
 }
