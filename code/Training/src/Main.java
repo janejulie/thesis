@@ -33,9 +33,9 @@ public class Main {
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         JComboBox<Integer> iMonths = new JComboBox<>(new Integer[]{3, 4, 5});
         JComboBox<Integer> iWeeklyDays = new JComboBox<>(new Integer[]{2, 3, 4, 5, 6});
-        iWeeklyDays.setSelectedItem(6);
-        JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(4, 15).boxed().toArray(Integer[]::new));
-        iWeeklyHours.setSelectedItem(15);
+        iWeeklyDays.setSelectedItem(4);
+        JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(4, 12).boxed().toArray(Integer[]::new));
+        iWeeklyHours.setSelectedItem(8);
         JComboBox<String> iCompetition = new JComboBox<>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
         JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
         iCompetitionDate.setColumns(8);
@@ -179,6 +179,7 @@ public class Main {
             case "Bergfahrt" -> plan = new MountainCompetition(month, iMaxWeeklyMinutes, weeklyDays, compDay);
             default -> throw new Exception("Wettkampfsart unbekannt");
         }
+
         if (plan != null){
             table.createTableContent(plan.getSessions());
             table.setRowSelectionInterval(0, 0);

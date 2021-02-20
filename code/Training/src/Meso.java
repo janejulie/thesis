@@ -47,17 +47,24 @@ public class Meso {
         this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay);
 
         this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxTrainingDays * maxMinutesDay * 4);
-        this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 60);
-        this.overallDistance = model.intVar("distance", 0, 60 * Range.values().length);
+        this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120);
+        this.overallDistance = model.intVar("distance", 0, 120 * Range.values().length);
     }
 
     public void defineConstraints() {
         // constraint on days
         for (int day = 0; day < 28; day++) {
-            addTrainingsessionPool(day, Method.Pause, SessionPool.getPause());
-            addTrainingsessionPool(day, Method.Fahrtspiel, SessionPool.getFS());
-            addTrainingsessionPool(day, Method.Dauerleistung, SessionPool.getDL());
+            addTrainingsessionPool(day, Method.Wiederholung, SessionPool.getWH());
             addTrainingsessionPool(day, Method.Intervall, SessionPool.getIV());
+            addTrainingsessionPool(day, Method.Pause, SessionPool.getPause());
+            addTrainingsessionPool(day, Method.Dauerleistung, SessionPool.getDL());
+            addTrainingsessionPool(day, Method.Fahrtspiel, SessionPool.getFS());
+
+            // variation of methods min 2 of every method
+            for (Method method : Method.values()) {
+                IntVar var = model.intVar("counter_" + method.toString(), 2, 20);
+                model.count(method.index(), methods, var).post();
+            }
 
             for (int range = 0; range < Range.values().length; range++) {
                 //ranges in 5 minute steps
@@ -100,6 +107,28 @@ public class Meso {
         }
         // Minimize this Variable
         model.sum(rangeDistances, "=", overallDistance).post();
+    }
+
+    private void addTrainingsessionPool(int day) {
+        ArrayList<Constraint> trainingPool = new ArrayList<>();
+        ArrayList<Constraint> limitConstraint = new ArrayList<>();
+        SessionPoolMethod[] sessionPool = SessionPoolMethod.values();
+        for (SessionPoolMethod session: sessionPool) {
+            limitConstraint.clear();
+            limitConstraint.add(model.arithm(names[day], "=", session.index()));  //identifier
+            limitConstraint.add(model.arithm(methods[day], "=", session.getMethod()));  //identifier
+
+            int[][] limits = session.getDomains();
+            for(int limit = 0; limit<limits.length; limit++){
+                limitConstraint.add(model.arithm(ranges[day][limit], "=", model.intVar(limits[limit][0], limits[limit][1])));
+            }
+            Constraint[] arrayAND= new Constraint[limitConstraint.size()];
+            limitConstraint.toArray(arrayAND);
+            trainingPool.add(model.and(arrayAND));
+        }
+
+        Constraint[] arrayOR= new Constraint[trainingPool.size()];
+        model.or(trainingPool.toArray(arrayOR)).post();
     }
 
     private void addTrainingsessionPool(int day, Method method, SessionPool[] sessionPool) {
