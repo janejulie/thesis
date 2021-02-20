@@ -22,7 +22,7 @@ class MainTest {
 
     @Test
     void planAmateurSingleday() throws Exception {
-        main.createPlan(3, "Straßeneinzel", 15, 5, compDate);
+        main.createPlan(3, "Straßeneinzel", 12, 6, compDate);
         assertNotNull(main.plan);
     }
     @Test
@@ -32,7 +32,7 @@ class MainTest {
     }
     @Test
     void planAmateurMountain() throws Exception {
-        main.createPlan(3, "Bergfahrt", 15, 5, compDate);
+        main.createPlan(3, "Bergfahrt", 12, 6, compDate);
         assertNotNull(main.plan);
     }
     @Test
@@ -42,22 +42,23 @@ class MainTest {
     }
     @Test
     void planAmateurTimetrial() throws Exception {
-        main.createPlan(3, "Rundstecke", 15, 5, compDate);
+        main.createPlan(3, "Rundstrecke", 12, 6, compDate);
         assertNotNull(main.plan);
     }
     @Test
     void planHobbyTimetrial() throws Exception {
-        main.createPlan(3, "Rundstecke", 4, 2, compDate);
+        main.createPlan(3, "Rundstrecke", 4, 2, compDate);
         assertNotNull(main.plan);
     }
 
-    /*
     @Test
-    void createPDF() throws Exception {
-        main.createPlan(3, "Straßeneinzel", 10, 4, compDate);
+    void createPDFs() throws Exception {
+        main.createPlan(3, "Straßeneinzel", 8, 4, compDate);
+        main.createPDF();
+        main.createPlan(4, "Rundstrecke", 8, 2, compDate);
+        main.createPDF();
+        main.createPlan(5, "Bergfahrt", 8, 4, compDate);
         main.createPDF();
     }
-
-    */
 
 }

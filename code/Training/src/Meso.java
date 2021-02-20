@@ -33,30 +33,41 @@ public class Meso {
         this.targetRanges = targetRanges;
         this.targetWeek = targetWeek;
         this.startDay = startDay;
-        this.maxMinutesDay = 300;
-
-        this.model = new Model("end on " + startDay);
+        this.maxMinutesDay = 60*5;
+        this.model = new Model("meso on" + startDay);
         initializeModel();
         defineConstraints();
     }
 
     private void initializeModel() {
+        int[] stepsRanges = getSteppedArray(maxMinutesDay, 15); // alternative to modulo constraint
+        int[] stepsMinutes = getSteppedArray(maxMinutesDay, 15); // alternative to modulo constraint
+        int[] stepsSums = getSteppedArray(maxTrainingDays * maxMinutesDay * 4, 15); // alternative to modulo constraint
         this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1);
-        this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, 0, maxMinutesDay);
+        this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, stepsRanges);
         this.names = model.intVarArray("names", 28, 0, SessionPool.values().length - 1);
-        this.minutes = model.intVarArray("minutes", 28, 0, maxMinutesDay);
+        this.minutes = model.intVarArray("minutes", 28, stepsMinutes);
 
-        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, 0, maxTrainingDays * maxMinutesDay * 4);
+        this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, stepsSums);
         this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120);
         this.overallDistance = model.intVar("distance", 0, 120 * Range.values().length);
+    }
+
+    private int[] getSteppedArray(int end, int steps) {
+        int length = end/steps;
+        int[] array = new int[length];
+        for (int i = 0; i < length; i++){
+            array[i] = i*15;
+        }
+        return array;
     }
 
     public void defineConstraints() {
         // constraint on days
         for (int day = 0; day < 28; day++) {
+            addTrainingsessionPool(day, Method.Pause, SessionPool.getPause());
             addTrainingsessionPool(day, Method.Wiederholung, SessionPool.getWH());
             addTrainingsessionPool(day, Method.Intervall, SessionPool.getIV());
-            addTrainingsessionPool(day, Method.Pause, SessionPool.getPause());
             addTrainingsessionPool(day, Method.Dauerleistung, SessionPool.getDL());
             addTrainingsessionPool(day, Method.Fahrtspiel, SessionPool.getFS());
 
@@ -66,16 +77,10 @@ public class Meso {
                 model.count(method.index(), methods, var).post();
             }
 
-            for (int range = 0; range < Range.values().length; range++) {
-                //ranges in 5 minute steps
-                model.mod(ranges[day][range], 5, 0).post();
-            }
-            // trainings always in 15 minute steps
-            model.mod(minutes[day], 15, 0).post();
-
             // minutes equal sum of minutes in ranges
             model.sum(ranges[day], "=", minutes[day]).post();
 
+            // redundant constraint for performance
             // method is pause exactly when 0 training minutes
             model.ifOnlyIf(
                     model.arithm(minutes[day], "=", 0),
@@ -86,7 +91,6 @@ public class Meso {
                     model.arithm(names[day], "=", SessionPool.Pause.index())
             );
         }
-
         // constraints on weeks
         for (int week = 0; week < 4; week++) {
             int startDay = week * 7;
@@ -96,7 +100,7 @@ public class Meso {
             model.sum(weekVariable, "<=", targetWeek[week]).post();
 
             // train x days in a week
-            model.count(0, weekVariable, model.intVar(7 - maxTrainingDays)).post();
+            model.count(0, weekVariable, model.intVar(7 - maxTrainingDays, 8-maxTrainingDays)).post();
         }
 
         // constaint on ranges columns
@@ -107,28 +111,6 @@ public class Meso {
         }
         // Minimize this Variable
         model.sum(rangeDistances, "=", overallDistance).post();
-    }
-
-    private void addTrainingsessionPool(int day) {
-        ArrayList<Constraint> trainingPool = new ArrayList<>();
-        ArrayList<Constraint> limitConstraint = new ArrayList<>();
-        SessionPoolMethod[] sessionPool = SessionPoolMethod.values();
-        for (SessionPoolMethod session: sessionPool) {
-            limitConstraint.clear();
-            limitConstraint.add(model.arithm(names[day], "=", session.index()));  //identifier
-            limitConstraint.add(model.arithm(methods[day], "=", session.getMethod()));  //identifier
-
-            int[][] limits = session.getDomains();
-            for(int limit = 0; limit<limits.length; limit++){
-                limitConstraint.add(model.arithm(ranges[day][limit], "=", model.intVar(limits[limit][0], limits[limit][1])));
-            }
-            Constraint[] arrayAND= new Constraint[limitConstraint.size()];
-            limitConstraint.toArray(arrayAND);
-            trainingPool.add(model.and(arrayAND));
-        }
-
-        Constraint[] arrayOR= new Constraint[trainingPool.size()];
-        model.or(trainingPool.toArray(arrayOR)).post();
     }
 
     private void addTrainingsessionPool(int day, Method method, SessionPool[] sessionPool) {
@@ -158,11 +140,7 @@ public class Meso {
     public void solveMonthOptimized() {
         Solver solver = model.getSolver();
         plan = new Solution(model);
-        IntVar[] vars = model.retrieveIntVars(false);
-/*        solver.setSearch(
-                Search.inputOrderUBSearch(vars)
-        );*/
-        solver.limitTime("10s");
+        solver.limitTime("20s");
         solver.plugMonitor((IMonitorSolution) () -> plan.record());
         solver.showShortStatistics();
         solver.findOptimalSolution(overallDistance, false);

@@ -38,7 +38,7 @@ public abstract class Macro {
             for(Range r : Range.values()){
                 targetRanges[r.index()] = (int) (getPerformanceRanges(month).get(r) * trainingMinutes);
             }
-            targetRanges = Arrays.stream(targetRanges).map(range -> (5*(Math.round(range/5)))).toArray(); //round to 5 step precision
+            targetRanges = Arrays.stream(targetRanges).map(range -> (15*(Math.round(range/15)))).toArray(); //round to 5 step precision
             Meso meso = new Meso(targetWeek, targetRanges, maxTrainingDays, startDay);
             mesos.add(meso);
         }

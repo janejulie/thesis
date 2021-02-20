@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,7 +35,7 @@ public class Main {
         iWeeklyDays.setSelectedItem(4);
         JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(4, 12).boxed().toArray(Integer[]::new));
         iWeeklyHours.setSelectedItem(8);
-        JComboBox<String> iCompetition = new JComboBox<>(new String[]{"Straßeneinzel", "Rundstecke", "Bergfahrt"});
+        JComboBox<String> iCompetition = new JComboBox<>(new String[]{"Straßeneinzel", "Rundstrecke", "Bergfahrt"});
         JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
         iCompetitionDate.setColumns(8);
         JButton bCreatePDF = new JButton("PDF erstellen");
@@ -111,7 +110,10 @@ public class Main {
     }
 
     public void createPDF() {
-        String destination = "pdf/trainingsplan"+plan.getClass().toString() + LocalDateTime.now() + ".pdf";
+        String destination = "pdf/"+ plan.getClass().toString().split(" ")[1] + "_" +
+                plan.getMaxTrainingDays() + "d_" +
+                plan.getMaxTrainingMinutes()/60 + "h_" +
+                ".pdf";
         File file = new File(destination);
         file.getParentFile().mkdirs();
         PdfWriter writer = null;
@@ -137,7 +139,6 @@ public class Main {
         }
 
         String description = getMonitorString();
-
         document.add(new Paragraph(description));
         document.add(pdfTable);
         document.close();
@@ -175,11 +176,10 @@ public class Main {
         int iMaxWeeklyMinutes = weeklyHours * 60;
         switch (comp) {
             case "Straßeneinzel" -> plan = new SingledayCompetition(month, iMaxWeeklyMinutes, weeklyDays, compDay);
-            case "Rundstecke" -> plan = new TimetrialCompetition(month, iMaxWeeklyMinutes, weeklyDays, compDay);
+            case "Rundstrecke" -> plan = new TimetrialCompetition(month, iMaxWeeklyMinutes, weeklyDays, compDay);
             case "Bergfahrt" -> plan = new MountainCompetition(month, iMaxWeeklyMinutes, weeklyDays, compDay);
             default -> throw new Exception("Wettkampfsart unbekannt");
         }
-
         if (plan != null){
             table.createTableContent(plan.getSessions());
             table.setRowSelectionInterval(0, 0);
@@ -193,6 +193,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Main m = new Main();
+        new Main();
     }
 }
