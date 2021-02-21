@@ -17,7 +17,7 @@ public abstract class Macro {
         this.numMonths = numMonths;
         this.maxTrainingMinutes = maxMinutes;
         this.maxTrainingDays = maxDays;
-        setPerformanceRanges();
+        setPerformanceRanges(); // hook-methode
         validateRanges();
         createMesos();
         solvePlan();
@@ -25,20 +25,29 @@ public abstract class Macro {
 
     private void createMesos() {
         int[] macroIntensity = {60, 70, 80, 90, 100};
-        macroIntensity = Arrays.copyOfRange(macroIntensity, macroIntensity.length-numMonths, macroIntensity.length); // crop to plan length
+        // crop macroIntensity to plan length
+        macroIntensity = Arrays.copyOfRange(macroIntensity, macroIntensity.length-numMonths, macroIntensity.length);
         int[] mesoIntensity = {80, 90, 100, 70};
 
         for (int month = 0; month < numMonths; month++){
             int iMacro = macroIntensity[month];
             LocalDate startDay = compDay.minusDays(28L *(numMonths-month));
-            int[] targetWeek = Arrays.stream(mesoIntensity).map(iMeso -> (iMeso * maxTrainingMinutes * iMacro)/10000).toArray(); //periodization
-            targetWeek = Arrays.stream(targetWeek).map(week -> (15*(Math.round(week/15)))).toArray(); //round to 5 step precision
+
+            // periodization
+            int[] targetWeek = Arrays.stream(mesoIntensity).map(iMeso -> (iMeso * maxTrainingMinutes * iMacro)/10000).toArray();
+
+            // round to step precision
+            targetWeek = Arrays.stream(targetWeek).map(week -> (15*(Math.round(week/15)))).toArray();
             int[] targetRanges = new int[6];
             int trainingMinutes = Arrays.stream(targetWeek).sum();
+
+            // get ranges with GA reduced in later months
             for(Range r : Range.values()){
                 targetRanges[r.index()] = (int) (getPerformanceRanges(month).get(r) * trainingMinutes);
             }
             targetRanges = Arrays.stream(targetRanges).map(range -> (15*(Math.round(range/15)))).toArray(); //round to 5 step precision
+
+            // create Meso instances with above values
             Meso meso = new Meso(targetWeek, targetRanges, maxTrainingDays, startDay);
             mesos.add(meso);
         }

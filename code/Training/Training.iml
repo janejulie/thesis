@@ -7,14 +7,14 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="com.itextpdf:kernel:7.1.2" level="project" />
-    <orderEntry type="library" name="com.itextpdf:io:7.1.2" level="project" />
-    <orderEntry type="library" name="com.itextpdf:layout:7.1.2" level="project" />
-    <orderEntry type="library" name="com.itextpdf:forms:7.1.2" level="project" />
-    <orderEntry type="library" name="com.itextpdf:pdfa:7.1.2" level="project" />
-    <orderEntry type="library" name="com.itextpdf:pdftest:7.1.2" level="project" />
-    <orderEntry type="library" name="choco-solver-4.10.6-jar-with-dependencies" level="project" />
-    <orderEntry type="module-library">
+    <orderEntry type="library" exported="" name="com.itextpdf:kernel:7.1.2" level="project" />
+    <orderEntry type="library" exported="" name="com.itextpdf:io:7.1.2" level="project" />
+    <orderEntry type="library" exported="" name="com.itextpdf:layout:7.1.2" level="project" />
+    <orderEntry type="library" exported="" name="com.itextpdf:forms:7.1.2" level="project" />
+    <orderEntry type="library" exported="" name="com.itextpdf:pdfa:7.1.2" level="project" />
+    <orderEntry type="library" exported="" name="com.itextpdf:pdftest:7.1.2" level="project" />
+    <orderEntry type="library" exported="" name="choco-solver-4.10.6-jar-with-dependencies" level="project" />
+    <orderEntry type="module-library" exported="">
       <library name="JUnit5.4">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/junit-jupiter-5.4.2.jar!/" />

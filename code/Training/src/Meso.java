@@ -34,32 +34,25 @@ public class Meso {
         this.targetWeek = targetWeek;
         this.startDay = startDay;
         this.maxMinutesDay = 60*5;
-        this.model = new Model("meso on" + startDay);
+        this.model = new Model("starts on" + startDay);
         initializeModel();
         defineConstraints();
     }
 
     private void initializeModel() {
-        int[] stepsRanges = getSteppedArray(maxMinutesDay, 15); // alternative to modulo constraint
-        int[] stepsMinutes = getSteppedArray(maxMinutesDay, 15); // alternative to modulo constraint
-        int[] stepsSums = getSteppedArray(maxTrainingDays * maxMinutesDay * 4, 15); // alternative to modulo constraint
+        // alternative to modulo constraints
+        int[] stepsRanges = getSteppedArray(maxMinutesDay, 15);
+        int[] stepsMinutes = getSteppedArray(maxMinutesDay, 15);
+        int[] stepsSums = getSteppedArray(maxTrainingDays * maxMinutesDay * 4, 15);
+
+        // define variables
         this.methods = model.intVarArray("methods", 28, 0, Method.values().length - 1);
         this.ranges = model.intVarMatrix("ranges", 28, Range.values().length, stepsRanges);
         this.names = model.intVarArray("names", 28, 0, SessionPool.values().length - 1);
         this.minutes = model.intVarArray("minutes", 28, stepsMinutes);
-
         this.rangeSums = model.intVarArray("sumsRanges", Range.values().length, stepsSums);
         this.rangeDistances = model.intVarArray("distRanges", Range.values().length, 0, 120);
         this.overallDistance = model.intVar("distance", 0, 120 * Range.values().length);
-    }
-
-    private int[] getSteppedArray(int end, int steps) {
-        int length = end/steps;
-        int[] array = new int[length];
-        for (int i = 0; i < length; i++){
-            array[i] = i*15;
-        }
-        return array;
     }
 
     public void defineConstraints() {
@@ -71,13 +64,13 @@ public class Meso {
             addTrainingsessionPool(day, Method.Dauerleistung, SessionPool.getDL());
             addTrainingsessionPool(day, Method.Fahrtspiel, SessionPool.getFS());
 
-            // variation of methods min 2 of every method
+            // variation of methods
             for (Method method : Method.values()) {
                 IntVar var = model.intVar("counter_" + method.toString(), 2, 20);
                 model.count(method.index(), methods, var).post();
             }
 
-            // minutes equal sum of minutes in ranges
+            // consistency on ranges and duration
             model.sum(ranges[day], "=", minutes[day]).post();
 
             // redundant constraint for performance
@@ -94,22 +87,32 @@ public class Meso {
         // constraints on weeks
         for (int week = 0; week < 4; week++) {
             int startDay = week * 7;
-            IntVar[] weekVariable = new IntVar[]{minutes[startDay], minutes[startDay + 1], minutes[startDay + 2], minutes[startDay + 3], minutes[startDay + 4], minutes[startDay + 5], minutes[startDay + 6]};
+            IntVar[] weekVariable = new IntVar[]{
+                    minutes[startDay],
+                    minutes[startDay + 1],
+                    minutes[startDay + 2],
+                    minutes[startDay + 3],
+                    minutes[startDay + 4],
+                    minutes[startDay + 5],
+                    minutes[startDay + 6]
+            };
 
-            // dont train more than x minutes in a week
+            // limit weekly minutes
             model.sum(weekVariable, "<=", targetWeek[week]).post();
 
-            // train x days in a week
+            // limit weekly days
             model.count(0, weekVariable, model.intVar(7 - maxTrainingDays, 8-maxTrainingDays)).post();
         }
 
-        // constaint on ranges columns
-        IntVar[][] transposed = ArrayUtils.transpose(ranges);
+        // constaint on range columns
+        IntVar[][] transposed = ArrayUtils.transpose(ranges); // ranges instead of days
         for (int i = 0; i < transposed.length; ++i) {
+            // get duration in different ranges
             model.sum(transposed[i], "=", rangeSums[i]).post();
+            // get distance of each range
             model.arithm(rangeSums[i].dist(targetRanges[i]).intVar(), "=", rangeDistances[i]).post();
         }
-        // Minimize this Variable
+        // Minimize this variable in optimization
         model.sum(rangeDistances, "=", overallDistance).post();
     }
 
@@ -118,19 +121,23 @@ public class Meso {
         ArrayList<Constraint> limitConstraint = new ArrayList<>();
         for (SessionPool session: sessionPool) {
             limitConstraint.clear();
-            limitConstraint.add(model.arithm(names[day], "=", session.index()));  //identifier
+            // set identifier as name in SessionPool
+            limitConstraint.add(model.arithm(names[day], "=", session.index()));
+
 
             int[][] limits = session.getDomains();
             for(int limit = 0; limit<limits.length; limit++){
+                // add constraint for each range to be in limit
                 limitConstraint.add(model.arithm(ranges[day][limit], "=", model.intVar(limits[limit][0], limits[limit][1])));
             }
+            // collects limits for each Session in SessionPool
             Constraint[] arrayAND= new Constraint[limitConstraint.size()];
             limitConstraint.toArray(arrayAND);
             trainingPool.add(model.and(arrayAND));
         }
 
-        Constraint[] arrayOR= new Constraint[trainingPool.size()];
-
+        // ensures method and session match definition
+        Constraint[] arrayOR= new Constraint[trainingPool.size()]; //
         model.ifThen(
                 model.arithm(methods[day], "=", method.index()),
                 model.or(trainingPool.toArray(arrayOR))
@@ -142,7 +149,6 @@ public class Meso {
         plan = new Solution(model);
         solver.limitTime("15s");
         solver.plugMonitor((IMonitorSolution) () -> plan.record());
-        solver.showShortStatistics();
         solver.findOptimalSolution(overallDistance, false);
     }
 
@@ -150,6 +156,7 @@ public class Meso {
         if (plan != null) {
             Session[] sessions = new Session[28];
             for (int i = 0; i < 28; i++) {
+                // extract data from Solution instance and create corresponding Session objects
                 HashMap<Range, Integer> dis = new HashMap<>();
                 dis.put(Range.KB, plan.getIntVal(ranges[i][0]));
                 dis.put(Range.GA, plan.getIntVal(ranges[i][1]));
@@ -168,6 +175,16 @@ public class Meso {
         } else {
             throw new NullPointerException();
         }
+    }
+
+    // similar to range in py
+    private int[] getSteppedArray(int end, int steps) {
+        int length = end/steps;
+        int[] array = new int[length];
+        for (int i = 0; i < length; i++){
+            array[i] = i*15;
+        }
+        return array;
     }
 
     public int[] getTargetWeek() {

@@ -17,6 +17,7 @@ class MainTest {
     void setUp() {
     }
 
+    // toggle comment on AfterEach if pdf should not be generated
     @AfterEach
     void tearDown() {
         main.getPlan().getMesos().forEach(i -> {

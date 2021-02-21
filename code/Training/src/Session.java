@@ -13,6 +13,7 @@ public class Session {
         this.method = method;
         this.distribution = distribution;
         this.day = day;
+        // get name from ordinal of enum
         this.type = SessionPool.values()[type].name().replace("_", " ");
     }
 

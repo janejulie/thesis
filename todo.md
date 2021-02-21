@@ -15,14 +15,11 @@
 
 # Möglich
 
-- [ ] Constraintarten noch mehr Beschreiben? 
-- [ ] aerob anaerob definitionen
 - [ ] Glossar hinzufügen?
 - [ ] Begründung wieso nicht Trainingsanteile in % sondern Zeitspanne
 - [ ] Modellierung/Konstanten: Abbildung erstellen mit Maximale Minuten und Belastungsbereiche? 
 - [ ] Code Ausschnitte?
 - [ ] Read Me für Code. Zippen und seafile
-- [ ] 
 
 
 

@@ -32,9 +32,7 @@ public class Main {
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         JComboBox<Integer> iMonths = new JComboBox<>(new Integer[]{3, 4, 5});
         JComboBox<Integer> iWeeklyDays = new JComboBox<>(new Integer[]{2, 3, 4, 5, 6});
-        iWeeklyDays.setSelectedItem(4);
         JComboBox<Integer> iWeeklyHours = new JComboBox<>(IntStream.rangeClosed(4, 12).boxed().toArray(Integer[]::new));
-        iWeeklyHours.setSelectedItem(8);
         JComboBox<String> iCompetition = new JComboBox<>(new String[]{"Straßeneinzel", "Rundstrecke", "Bergfahrt"});
         JFormattedTextField iCompetitionDate = new JFormattedTextField(LocalDate.now().plusMonths(6));
         iCompetitionDate.setColumns(8);
@@ -104,7 +102,7 @@ public class Main {
         String targets = "<html>";
         targets += getMonitorString().replace("\n", "<br>");
         targets += "Auswahl -------";
-        targets += table.monitorStats();
+        targets += table.monitorStats(); // sums up values of marked rows for debugging purposes
         targets += "</html>";
         monitor.setText(targets);
     }
@@ -112,8 +110,9 @@ public class Main {
     public void createPDF() {
         String destination = "pdf/"+ plan.getClass().toString().split(" ")[1] + "_" +
                 plan.getMaxTrainingDays() + "d_" +
-                plan.getMaxTrainingMinutes()/60 + "h_" +
+                plan.getMaxTrainingMinutes()/60 + "h" +
                 ".pdf";
+
         File file = new File(destination);
         file.getParentFile().mkdirs();
         PdfWriter writer = null;
@@ -151,12 +150,6 @@ public class Main {
         }
     }
 
-    public String arrayToString(int[] array){
-        return IntStream.of(array)
-                .mapToObj(Integer::toString)
-                .collect(Collectors.joining(", "));
-    }
-
     private String getMonitorString() {
         String description =
                 plan.getName() + " am " + plan.getCompDay().toString() + "\n" +
@@ -167,11 +160,16 @@ public class Main {
             Meso meso = plan.getMesos().get(month);
             description += (month+1) + ". Monat -------" + "\n";
             description += "Wochenziele " + arrayToString(meso.getTargetWeek()) + "\n";
-            description += "Leistungsbereiche " + arrayToString(meso.getTargetRanges()) + "\n";
+            description += "Belastungsbereiche " + arrayToString(meso.getTargetRanges()) + "\n";
         }
         return description;
     }
 
+    public String arrayToString(int[] array){
+        return IntStream.of(array)
+                .mapToObj(Integer::toString)
+                .collect(Collectors.joining(", "));
+    }
     void createPlan(int month, String comp, int weeklyHours, int weeklyDays, LocalDate compDay) throws Exception {
         int iMaxWeeklyMinutes = weeklyHours * 60;
         switch (comp) {

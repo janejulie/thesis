@@ -25,6 +25,7 @@ public class TrainingTable extends JTable {
         return renderer;
     }
 
+    // display data of sessions
     public void createTableContent(ArrayList<Session> sessions){
         Object[][] tableContent = new Object[sessions.size()][10];
         for (int i = 0; i<sessions.size(); i++){
@@ -43,7 +44,7 @@ public class TrainingTable extends JTable {
         ((DefaultTableModel) getModel()).setDataVector(tableContent, header);
     }
 
-
+    // gets sums of marked rows
     public String monitorStats(){
         sums = new HashMap<>();
         int[] rows = getSelectedRows();
@@ -67,6 +68,7 @@ public class TrainingTable extends JTable {
 }
 
 class TrainingCellRenderer extends DefaultTableCellRenderer {
+    // mark week in same color
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus, int row, int column) {
