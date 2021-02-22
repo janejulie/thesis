@@ -1,0 +1,191 @@
+\chapter{Implementierung}
+\label{sec:implementierung} 
+Bei der Implementierung der Modellierung wird die objektorientierte Programmiersprache Java \cite{java} verwendet. Nativ bietet sie keine Constraint Programmierung an, aber diesbezüglich wird auf die Open-Source Bibliothek Choco Solver \cite{ChocoSolverWeb} zurückgegriffen. Mit dieser ist die Modellierung von persönlichen und Lehrprojekten möglich. \par
+Aus der Hierarchie der Zyklen, wie in \ref{abbildung:modellierung:schema}, lassen sich die Objektklassen entwerfen. Auch wenn die übergeordnete Instanz der Makrozyklus ist, erfolgt die Optimierung erst auf der Ebene des Mesozyklus. Dadurch wird jeder Monat unabhängig der Anderen modelliert und der Einsatz des Choco Solvers auf die \texttt{Meso}-Klasse beschränkt. Gesteuert wird die Gewichtung der Belastungsbereiche in den einzelnen Monaten durch zwei Faktoren: Die Länge des Plans (3, 4 oder 5 Monate) bestimmt die Anzahl der periodisierten \texttt{Meso-}Instanzen im Makrozyklus. Des Weiteren steigt bei Mesozyklen die Gewichtung der wettkampfspezifischen Ausdauer bei Näherung an den Wettkampftermin. Diese Vorgaben werden als Minutenziele bereits im Makrozyklus berechnet und dann an die Meso-Instanzen weitergegeben.
+Zusätzlich ist die Modellierung in ein Programm eingebettet, das bereits die Ein- und Ausgabe handhabt. Die Interaktion mit dem Programm ist damit unabhängig von der Trainingsplanerstellung. \par
+
+\section{Eingaben}
+Um den Trainingsplan zu individualisieren, erfasst das Programm die Eingaben der Benutzer:innen über eine grafische Oberfläche, die in Anhang \ref{anhang:gui} zu sehen ist. Die Wettkampfdisziplin korreliert mit dem Trainingsziel. An der ausgewählten Disziplin macht sich die Gewichtung der Belastungsbereiche fest. Der wöchentliche Trainingsumfang des Plans limitiert die Trainingszeit pro Woche. Über die Anzahl der Stunden lassen sich Rückschlüsse auf die Professionalität des Trainings ziehen. Während im Profibereich der Trainingsumfang über zwölf Stunden beträgt, unterschreiten Amateure diesen Wert üblicherweise. Bei einem Wert bis zu fünf Stunden pro Woche spricht man oft von Freizeitsport, obwohl eine scharfe Trennung der Bereiche nicht möglich ist.\newline
+Nicht nur die Wochenstunden, sondern auch die wöchentlichen Trainingstage werden bei der Erstellung des Plans berücksichtigt. Die Anzahl der Tage steuert die Häufigkeit der Einheiten.
+Wie in \ref{anhang:modellierung:gross} unter Input aufgeführt, werden folgende Eingaben anhand der grafischen Oberfläche erfasst:
+\begin{itemize}[parsep=2t, topsep=2pt]
+    \item Dauer des Plans: 3-5 Monate
+    \item Ziel/Disziplin: Straßeneinzelrennen, Rundstrecke, Bergzeitfahrt
+    \item Wettkampftermin: Datum
+    \item wöchentlicher Trainingsumfang: 2-12 Stunden 
+    \item wöchentliche Trainingstage: 2-6 Tage
+\end{itemize}
+    
+\section{Klassendiagramm der Modellierung}
+\begin{figure}[htb]
+    \begin{tikzpicture}
+        \umlclass[y=5, fill=white, type = abstract]{Macro}{
+            - numMonth : int \\
+            - maxTrainingMinutes : int \\
+            - maxTrainingDays : int \\
+            - compDay : LocalDate \\
+            - ranges : Map<Range, Double> \\
+        }{
+            \umlvirt{+ setRanges()} \\
+            + validateRanges()\\
+            + solvePlan() \\
+        }
+        
+        \umlclass[x=8, y=5, fill=white]{Meso}{
+            - model : Model \\
+            - plan : Solution \\
+            - targetRanges : int[6] \\
+            - targetMinutes : int[4] \\
+            - name : IntVar[] \\
+            - minutes : IntVar[] \\
+            - method : IntVar[] \\
+            - ranges : IntVar[][] \\    
+            - distanceRanges : IntVar[] \\
+            - overallDistance : IntVar \\
+
+        }{
+            - initializeModel() \\
+            - defineConstraints() \\
+            - addSessionPool(Method m, SessionPool[] p) \\
+            + solveMonth() \\
+            + getPlan() : Solution \\
+            + getSessions() : Session[] \\
+        }
+        \umlclass[x=8, y=-3, fill=white]{Session}{
+            - name : String \\
+            - minutes : int \\
+            - distribution : HashMap<Range, Integer> \\
+            - day : LocalDate \\
+            - method : Method \\
+        }{
+        }
+        \umlclass[x=1, y=0, fill=white]{Strasseneinzel}{}{+ setRanges()}
+        \umlclass[x=1, y=-2, fill=white]{Rundfahrt}{}{+ setRanges()}
+        \umlclass[x=1, y=-4, fill=white]{Bergfahrt}{}{+ setRanges()}
+        
+        \umlHVinherit[anchor2=-130]{Strasseneinzel}{Macro}
+        \umlHVinherit[anchor2=-130]{Rundfahrt}{Macro}
+        \umlHVinherit[anchor2=-130]{Bergfahrt}{Macro}
+        \umluniassoc[arg=-mesos ,  mult2=3..5, pos =0.95, align=right]{Macro}{Meso}
+        \umluniassoc[arg=-sessions , mult2=28, pos =0.80, align=right]{Meso}{Session}
+    \end{tikzpicture}
+    \caption{Klassendiagramm der Modellierung}
+    \label{fig:uml:solver}
+\end{figure}
+
+\subsection{\texttt{Macro}-Klasse}
+Diese abstrakte Klasse koordiniert das Erstellen der Mesozyklen und ist der Einstiegspunkt für Operationen auf dem Trainingsplan. Je nach Planlänge wird für jeden Monat eine \texttt{Meso}-Instanz generiert. Über Vererbung werden die verschiedenen Wettkampfdisziplinen realisiert. Die Klasse ist nach dem Entwurfsmuster \textit{Template Method} erstellt. Bei der Instanziierung greift die abstrakte Operation \texttt{setRanges()} und definiert für jeden Belastungsbereich die Gewichtung in Prozent. Mit \texttt{validateRanges()} wird sichergestellt, dass diese Verteilung zu \texttt{"1"} summiert.\par
+Für die Mesozyklen werden aus dem Prinzip der Periodisierung und der progressiven Belastung bereits die Zielwerte in den einzelnen Wochen berechnet. Die Werte werden in Minuten angegeben und an die Mesozyklen weitergegeben. Indem die Werte entsprechend gerundet werden, wird die Diskretisierung der wöchentlichen Umfänge mit berücksichtigt.\newline
+Genauso werden auch die Zielwerte für die Vorgabe der Trainingsminuten in den Belastungsbereichen bestimmt. Die festgelegten Werte aus \texttt{setRanges()} legen die durchschnittliche Verteilung an. Für jede Mesoinstanz wird die wettkampfspezifische Belastung im Spitzenbereich SB mit Wettkampfnähe erhöht. Im Gegenzug verringert sich der Anteil des Grundlagenausdauerbereichs GA. Auch diese Vorgaben werden auf eine Genauigkeit von 15 Minuten gerundet. Das deckt sich mit der Diskretisierung der mathematischen Modellierung. \par
+Durch die unabhängige Planung der Mesozyklen ist es möglich, die Lösung der einzelnen Modelle parallelisiert zu lösen. Dies optimiert die Laufzeit und reduziert die Wartezeit für die Benutzer:innen. Die Ergebnisse aus den verschiedenen Prozessen werden im Anschluss zu einem Trainingsplan zusammengetragen. 
+
+\subsection{\texttt{Meso}-Klasse}
+Gekapselt in eine Klasse wird hier die Modellierung von 28 Tagen vorgenommen. An dieser Stelle kommt der Choko Solver zum Einsatz. Mit dessen \texttt{Model}-Objekt werden die Variablen und Constraints des Problems definiert. Für die Variablen werden die zugehörigen \texttt{IntVar}-Instanzen \texttt{names, minutes, methods, ranges, distanceRanges, overallDistance} wie im \hyperref[sec:modellierung:model]{Modell unter \ref{sec:modellierung:model}} angelegt. Sie verwalten die Wertebereiche während der Lösungssuche. Über den Index erfolgt der Zugriff auf die Werte der einzelnen Trainingstage. \par
+Die Constraints der Modellierung werden definiert und dem Model hinzugefügt. Dabei übernimmt \texttt{addSessionPool(Method m, SessionPool[] p)} das Hinzufügen der möglichen Ausprägungen in Abhängigkeit von der Trainingsmethode. Da es sich bei den Trainingseinheiten aus dem \texttt{SessionPool} um sportartspezifische Daten handelt, sind sie außerhalb der \texttt{Meso}-Klasse gekapselt. Die Funktion fügt abstrahiert von den konkreten Trainingsmethoden und -einheiten die Constraints dem Modell hinzu. \newline
+Eine Besonderheit stellt die Trainingseinheit Pause dar. Sie hat für alle Belastungsbereiche einen festen Wert von Null und nur eine mögliche Belegung. Weil die Summe der Werte (\texttt{= 0}) die Dauer der Einheit ergibt, konnte ein redundantes Constraint die Laufzeit verbessern. Wenn die Methode der Pause entspricht, wird die Länge auf Null gesetzt. \newline
+Außerdem sind die Wertebereiche der Minuten vorher auf die 15-minütigen Abschnitte gesetzt worden, anstatt sie über modulo-Constraints umzusetzen.\par
+Mit \texttt{solveMonth()} wird die Lösungssuche angestoßen. Die Lösungen werden nach der Optimierungsvariablen \texttt{overallDistance} bewertet und mit einem \texttt{Solution}-Objekt des Solvers verwaltet. Um die Modellierung in angemessener Zeit zu ermöglichen, wurde mithilfe des Choko Solvers eine zeitliche Begrenzung von 15 Sekunden für den Lösungsprozess festgelegt. Dadurch kann der Lösungsprozess besser gesteuert werden. Aus den Werten der Lösungsinstanz erstellt die Klasse die passenden \texttt{Session}-Objekte für jeden der 28 Tage. Sie werden erst nach der Lösung des Mesozyklus auf Abruf von \texttt{getSessions()} erstellt. Die genaue Evaluation der resultierenden Trainingspläne folgt in \hyperref[sec:evaluation]{Kapitel \ref{sec:evaluation}}.
+
+\subsection{\texttt{Session}-Klasse}
+Die \texttt{Session}-Objekte vereinfachen die Visualisierung der Trainingseinheiten. Sie enthalten alle charakteristischen Daten eines Trainingstages wie er in \ref{sec:modellierung:output} aufgeführt ist. Diese nehmen aber keinen Einfluss auf die Modellierung selbst, sondern werden aus ihren Ergebnissen erstellt.
+
+\section{Modularisierung}
+Die Grundlage dieser Arbeit war eine vorangegangene Bachelorarbeit, die den Laufsport betrifft. Mit Ausblick auf die Erweiterung um das Schwimmtraining, ist es durch eine Kombination der Arbeiten vorstellbar, die Trainingsplanerstellung für Triathletinnen und Triathleten zu optimieren. Aus diesem Grund ist die Arbeit modular gegliedert. \par
+Für viele Sportarten gelten die Trainingsprinzipien der Zyklisierung, Periodisierung, progressiven Belastung und Regeneration. Diese Struktur kann besonders für andere Ausdauersportarten übernommen werden. Die Definition der Belastungsbereiche, Trainingsmethoden und validen Trainingseinheiten ist über Aufzählungstypen (engl. \textit{enumerations}) erfolgt. Diese spiegeln die endliche Wertemenge der Variablen wider.
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+        \umlclass[type=enumeration, fill=white]{Range}{
+            Kompensation   \\ 
+            Grundlagenausdauer   \\ 
+            Entwicklungsbereich   \\ 
+            Spitzenbereich   \\ 
+            Kraftausdauer1   \\ 
+            Kraftausdauer4   
+        }{}
+        
+        \umlclass[type=enumeration, x=4.25, fill=white]{Method}{
+            Pause \\
+            Dauerleistung   \\ 
+            Fahrtspiel  \\
+            Intervall \\
+            Wiederholung  \\
+        }{}
+        \umlclass[type=enumeration, x=9, fill=white]{SessionPool}{
+            Pause\\
+            Kompensationstraining \\
+            ExtensiveFahrt   \\ 
+            Fettstoffwechsel  \\
+            IntensiveFahrt \\
+            ExtensiveKraftausdauerfahrt  \\
+            Einzelzeitfahrt  \\
+            ExtensivesFahrtspiel  \\
+            FreiesFahrtspiel  \\
+            IntensiveKraftausdauer  \\
+            Schnelligkeitsausdauer  \\
+            Sprinttraining  \\
+        }{
+            getPause() \\
+            getDL() \\
+            getFS() \\
+            getIV() \\
+            getWH() \\
+        }
+    \end{tikzpicture}    
+    \caption{Klassendiagramm der sportspezifischen Aufzählungstypen}
+    \label{fig:uml:enumeration}
+\end{figure}
+
+Die Erweiterung des Modells in \texttt{Range} um weitere Belastungsbereiche ist möglich, aber erfordert im \texttt{SessionPool} die Festlegung der Zeitspannen für jede Art von Trainingseinheit. Eher ist davon auszugehen, dass nach der Festlegung für eine Sportart die Belastungsbereiche fest sind und stattdessen der \texttt{SessionPool} um weitere Trainingseinheiten erweitert wird. \par
+Der Vorteil der Kapselung ist hier, dass eine neue Kombination dieser drei Aufzählungstypen genutzt werden kann, um mit dem Modell andere Ausdauersportarten zu lösen. Die konkreten Belastungsbereiche, Methoden oder Trainingseinheiten beeinflussen die Modellierung nicht, greifen aber aufeinander zu. Die Implementierung abstrahiert von der sportartspezifischen Ausprägung der Trainingseinheiten. Die Liste der Trainingsmethoden dient der Zuweisung der Einheiten zu ihrer Methode. Im SessionPool sind die Trainingseinheiten mit ihren möglichen Zeitspannen in den verschiedenen Belastungsbereichen definiert. Dadurch können neue Arten von Trainingseinheiten auch nachträglich mit geringem Aufwand hinzugefügt werden. Die Instanz wird in SessionPool definiert und beim Abruf der Trainingsmethode an die Modellierung weitergegeben. Das Ändern der Modellierungsklasse ist dafür nicht erforderlich.
+
+\section{Ausgabe}
+\label{sec:modellierung:output}
+Die Ausgabe des Plans ist über zwei Wege verfügbar: In der Implementierung ist eine grafische Benutzungsoberfläche \ref{anhang:gui} zur tabellarischen Ansicht der Trainingseinheiten inklusive\footnote{Die im Makrozyklus berechneten Zieldaten werden für die Überprüfung in der Oberfläche angezeigt.}. Nach Erstellung des Plans gibt es außerdem die Möglichkeit diesen als PDF-Dokument abzuspeichern.
+
+\begin{figure}[h]
+    \begin{tikzpicture}
+        \umlclass[y=5, fill=white]{Main}{
+            - plan : Macro
+        }{
+            + monitorStats() \\
+            + createPlan() \\
+            + createTable(i : int) \\
+            + createPDF(i : int) \\}
+        \umlclass[x=9, y=5, fill=white]{OutputTrainingTable}{
+        }{
+            + displayPlan() \\
+        }
+        \umluniassoc[arg=-table , mult2=1, pos =0.95, align=right]{Main}{OutputTrainingTable}
+    \end{tikzpicture}    
+    \caption{Klassendiagramm der Interaktion mit dem Programm}
+    \label{fig:uml:solver}
+\end{figure}
+
+Die Trainingseinheit wird definiert durch die nachfolgenden Parameter:
+\begin{itemize}[topsep=0pt, parsep=0pt]
+    \item Tag: Datum
+    \item Dauer: Anzahl Stunden
+    \item Trainingsarten: TrainingPool \ref{anhang:trainingsarten}
+    \item Trainingsbereich: Range \ref{grundlagen:sport:belastungsbereiche}
+    \item Trainingsmethode: Method \ref{grundlagen:methoden}
+\end{itemize}
+Das Klassendiagramm des vollständigen Programms ist im Anhang unter \ref{anhang:uml} aufgeführt und besteht aus der Zusammensetzung der obigen Teile. Die \texttt{Main}-Klasse hält eine \texttt{Macro}-Instanz, die den Trainingsplan berechnet und repräsentiert.
+
+\section{Testfälle}
+Um die Modellierung zu beurteilen, wurde eine Testklasse angelegt. Neun Anwendungsfälle (aus den drei Wettkampfdisziplinen mit je geringem, mittlerem und hohem Umfang) dienen hier der Überprüfung. Die Implementierung ist unter \texttt{MainTest} verfügbar. 
+Für die Erstellung der Testfälle ist die frei verfügbare Java-Bibliothek JUnit verwendet worden. Die Tests überprüfen auf der Ebene der \texttt{Main}-Klasse die Existenz der Trainingseinheiten nach dem Lösungsprozess.\footnote{Es ist auf der Ebene der Oberfläche getestet worden, da es bei der Makroinstanz nicht möglich war, die Terminierung der einzelnen Prozesse aus der Parallelisierung abzuwarten. Für diese geringe Anzahl von Fällen sind die Kosten für die Erstellung der grafischen Oberfläche jedoch überschaubar.} 
+Die erstellten PDF-Dokumente der Pläne sind als Kopie unter dem Verzeichnis \texttt{./pdf\_2021\_02\_21/} abgelegt. Bei weiteren Ausführungen der Testklasse befinden sich die erstellten Pläne unter \texttt{./pdf/}.
+
+% ALTERNATIVSÄTZE
+% Außerdem besteht die Möglichkeit den Trainingsplan als einfaches PDF-Dokument herunterzuladen.
+% Darstellung der Trainingseinheiten als Liste in der Java Applikation
+% Die konkrete Umsetzung des Softwareprojekts wird als Java-Anwendung zur Verfügung gestellt.
+% Alle oben genannten Funktionen werden unterstützt.Bei der Lösung des Optimierungsproblems kommt das Framework choco-solver zum Einsatz. Die Optimierung wird ausgelöst auf jeden Monat.
+% Die Berechnung einer Lösunginstanz der Mesozyklen wird parallelisiert ausgeführt.
+
+% Übertragbarkeit auf andere Sportarten? Welche Constraints sind speziell für den Radsport vs. allgemeine Trainingsprinzipien
+% modulare Entwicklung der Anwendung?
+% Einbettung des Solvers in Java Programm
+% Time Limits oder andere Arten zur Steuerung des Solvers -> Kommt dann in Implementierung
+% ? Trainingsalternativen = Auswahl an möglichen Einheiten
