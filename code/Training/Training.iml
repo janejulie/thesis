@@ -30,5 +30,10 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="choco-solver-4.10.6-jar-with-dependencies" level="project" />
+    <orderEntry type="library" name="itext7" level="project" />
+    <orderEntry type="library" name="slf4j-log4j12-1.7.9" level="project" />
+    <orderEntry type="library" name="slf4j-api-1.7.9" level="project" />
+    <orderEntry type="library" name="slf4j-jdk14-1.7.9" level="project" />
   </component>
 </module>
