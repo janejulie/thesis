@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -159,8 +160,8 @@ public class Main {
         for (int month = 0; month < plan.getNumMonths(); month++){
             Meso meso = plan.getMesos().get(month);
             description += (month+1) + ". Monat -------" + "\n";
-            description += "Wochenziele " + arrayToString(meso.getTargetWeek()) + "\n";
-            description += "Belastungsbereiche " + arrayToString(meso.getTargetRanges()) + "\n";
+            description += "Wochenziele " + arrayToString(meso.getTargetWeek()) + " Summe : " + Arrays.stream(meso.getTargetWeek()).sum() +  "\n";
+            description += "Belastungsbereiche " + arrayToString(meso.getTargetRanges()) + " Summe : " + Arrays.stream(meso.getTargetRanges()).sum() +  "\n";
         }
         return description;
     }
