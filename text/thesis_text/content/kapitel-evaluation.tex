@@ -1,0 +1,35 @@
+\chapter{Evaluation}
+\label{sec:evaluation}
+Die neun Trainingspläne aus den obigen Testfällen werden für die Evaluation der Arbeit herangezogen. Anhand derer werden die Ergebnisse der Modellierung nach Anwendbarkeit und Individualität bewertet.
+\section{Anwendungsfälle}
+Die Testfälle sind so gewählt, dass die Zielgruppe der Pläne in möglichst breitem Spektrum abgedeckt wird. Sowohl Freizeitsportler:innen als auch Amateursportler:innen sollen im Umfang ihrer voraussichtlichen Trainingszeiten abgebildet werden. Die Tests sind mit allen drei Wettkampfdisziplinen durchgeführt worden. \newline
+Ein Testfall mit niedrigem Umfang limitiert den Plan auf zwei wöchentliche Tage und vier wöchentliche Stunden. Bei einem mittleren Umfang sind es acht Stunden pro Woche verteilt auf vier Trainingstage. Die höchste Eingabemöglichkeit, die zwölf Stunden und sechs Tagen entspricht, wird im umfangreichsten Testfall abgebildet.
+Exemplarisch ist der Rundstrecken-Trainingsplan mit mittlerem Umfang dem Anhang der Arbeit unter \ref{anhang:beispielplan} beigefügt.\footnote{Die weiteren Pläne sind als Ergebnis der Testfälle im oben genannten Verzeichnis zu finden.} Der vollständige Plan umfasst alle Einheiten über drei Monate hinweg.
+\section{Evaluation der Anwendbarkeit}
+Die Anwendbarkeit des Plans ist garantiert durch die zeitliche Limitierung des Lösungsprozesses. Das bedeutet zwar, dass die Distanz zu den Belastungsbereichen nicht immer auf Null reduziert wird, bewahrt aber die Praktikabilität des Systems. Die Testfälle bestätigen, dass nach der Terminierung auch ein Trainingsplan erstellt worden ist. Die Abweichungen der Trainingspläne sind in \hyperref[table:tests]{Tabelle \ref{table:tests}} aufgeführt.
+\newcolumntype{x}{>{\hsize=0.4\hsize}X}
+\newcolumntype{y}{>{\hsize=0.2\hsize}X}
+\begin{table}[h]
+\centering
+\footnotesize
+    \begin{tabularx}{\textwidth}{|x|yyy|}
+    \hline
+    \rowcolor{ctcolorgraylight} 
+    \textbf{Zielgruppe} & \textbf{Straßeneinzel} & \textbf{Rundstrecke} & \textbf{Bergfahrt} \\\hline
+        niedriger Umfang  & 0,0 \%  &  0,0 \% & 0,0 \% \\ \hline
+        mittlerer Umfang & 4,67 \%  & 4,03 \%   & 7,67 \%   \\ \hline
+        hoher Umfang   & 5,97 \% & 3,5 \%  &   8,47 \%  \\
+     \hline               
+    \end{tabularx}
+    \caption{Testergebnisse der Gesamtabweichung von Trainingsminuten anhand der neun Anwendungsfälle}
+    \label{table:tests}
+\end{table}
+
+Aus den Messwerten geht hervor, dass die durchschnittliche Distanz der gesamten Belastungsbereiche in einem Testfall 3,81 Prozent beträgt. Pro Belastungsbereich weicht der Trainingsplan durchschnittlich um circa 0,6 Prozent vom Zielwert ab. Im Hinblick auf den Einsatzzweck ist die Präzision von über 99 Prozent hinreichend groß, da es sich bei den Zielwerten der Bereiche bereits um Schätzungen handelt und sie nur Tendenzen der Leistungsprofile darstellen. Es kann davon abgesehen werden, exakte Ergebnisse zu fordern. Stattdessen werden kleine Abweichungen der Lösung gegen die Performance abgewägt, um ein anwendbares System zu erhalten.
+
+Eine mögliche Ursache für die Abweichungen ist das Runden der wöchentlichen Vorgaben im Umfang und in den einzelnen Belastungsbereichen. Die Diskretisierung impliziert die Ziele in der gleichen Genauigkeit zu definieren. Zu untersuchen bleibt, ob inkonsistente Vorgaben daraus entstehen. \newline
+Die größte Abweichung tritt bei hohen Trainingsumfängen ein, da die flexible Definition der möglichen Trainingseinheiten den Suchraum vergrößert. Je größer der Umfang, desto weniger Tage sind mit Pausen belegt. Diese Trainingsart ist als einzige nicht dynamisch definiert. Andere Trainingsarten erlauben mehr Kombinationsmöglichkeiten, sodass die Optimierung aufwändiger ist.\newline
+Da die Angaben über die Stunden und Tage stark in Zusammenhang stehen, kann eine komplementäre Belegung (hohe Anzahl an Stunden bei wenigen Trainingstagen oder wenige Stunden auf viele Tage verteilt) verantwortlich für höhere Abweichungen sein. Auch hier sichert die zeitliche Begrenzung des Lösungsprozesses auf 15 Sekunden die Ausführbarkeit des Programms. 
+
+\section{Evaluation der Individualität}
+Die Individualität des Plans ist gegeben durch die fünf Faktoren der Eingabe. Das Wettkampfdatum ist für die Modellierung zunächst unerheblich und kommt erst bei der Visualisierung der Trainingseinheiten zum Tragen. Die anderen vier Eingaben ermöglichen den Benutzer:innen eine Abstimmung auf die persönlichen Trainingsziele. Die Zielgruppe ist über den Umfang abgedeckt, der mit hoher Flexibilität angegeben werden kann. Wie aus den Testfällen zu entnehmen, generiert das Programm für die gesamte Zielgruppe Trainingspläne. Die individuellen Bedürfnisse sind mit diesem Programm in der Trainingsplanerstellung berücksichtigt.
