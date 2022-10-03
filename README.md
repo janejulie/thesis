@@ -4,8 +4,8 @@ Dieses Projekt ist als Bachelorarbeit an der Johannes-Gutenberg-Universität Mai
 # Optimierte Erstellung von Trainingsplänen für den Radsport
 Mithilfe dieses Java-Programms soll es Radsportlern möglich sein einen optimierten Trainingsplan zu erstellen. Der Trainingsplan wird optimiert nach Benutzereingaben wie Wettkampfsdatum, Wettkampfdisziplin, Dauer, Anzahl der wöchentlichen Trainingstagen und Trainingsstunden. Außerdem werden trainingswissenschaftliche Prinzipien wie Periodisierung, Zyklisierung, Progression, Regeneration und Superkompensation beachtet. Der berechnete Trainingsplan ist über die grafische Oberfläche oder als PDF verfügbar.
 
-Das gesamte Projekt ist Textteil der Arbeit ausfühlich beschrieben. (siehe <a href="./thesis_text.pdf">thesis_text</a>)
-Im Anschluss an die Arbeit wurde sie unter https://www.butze.digital/trainingplan auch online zur Verfügung gestellt.
+Das gesamte Projekt ist Textteil der Arbeit ausfühlich beschrieben. (siehe <a href="./thesis_text.pdf">thesis_text.pdf</a>)
+Im Anschluss an die Arbeit wurde sie unter <a href="https://www.butze.digital/trainingplan"> butze.digital</a> auch online zur Verfügung gestellt.
 
 
 ## Modellierung 
